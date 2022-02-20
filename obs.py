@@ -1,14 +1,31 @@
+import os
 import obswebsocket as obs
 import obswebsocket.requests as obs_requests
 from obswebsocket import events
+from threading import Lock
 
 ORIGINAL_STREAM_SOURCE_NAME = 'original_stream'
+MAIN_SCENE_NAME = 'main'
+
+def create_event_handler(obs_instance):
+    def foo(message):
+        obs_instance.on_event(message)
+    return foo
 
 class OBS:
     def __init__(self, lang, client):
         self.lang = lang
         self.client = client
         self.original_media_source = None
+        self.media_queue = []
+        self.callback_queue = []
+
+        self.client.register(create_event_handler(self))
+
+    def update(self):
+        for callback in self.callback_queue:
+            callback()
+        self.callback_queue.clear()
 
     def set_original_media_source(self, scene_name, original_media_source):
         """
@@ -34,10 +51,19 @@ class OBS:
             raise Exception(f"E PYSERVER::OBS::add_original_media_source(): "
                             f"coudn't create a source, datain: {response.datain}, dataout: {response.dataout}")
 
+        request = obs.requests.SetAudioMonitorType(
+            sourceName=ORIGINAL_STREAM_SOURCE_NAME, monitorType='none'
+        )
+        response = self.client.call(request)
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::add_original_media_source(): "
+                            f"coudn't set audio monitor type, datain: {response.datain}, dataout: {response.dataout}")
+
     def setup_scene(self, scene_name='main'):
         """
         Creates (if not been created) a scene called `scene_name` and sets it as a current scene.
-        If it has been created, removes all the sources from it and sets it as a current one.
+        If it has been created, removes all the sources inside the scene and sets it as a current one.
         """
         scenes = self.client.call(
             obs.requests.GetSceneList()).getScenes()  # [... {'name': '...', 'sources': [...]}, ...]
@@ -51,6 +77,9 @@ class OBS:
         self.set_current_scene(scene_name)
 
     def clear_all_scenes(self):
+        """
+        Lists all the scenes and removes all the scene items.
+        """
         scenes = self.obsws_get_scene_list()
         for scene_info in scenes:
             scene_name = scene_info['name']
@@ -80,6 +109,63 @@ class OBS:
         Creates a scene with name `scene_name`
         """
         self.client.call(obs.requests.CreateScene(sceneName=scene_name))
+
+    def run_media(self, path):
+        """
+        Mutes original media, adds and runs the media located at `path`, and appends a listener which removes
+        the media when it has finished. Fires Exception when couldn't add or mute a source.
+        """
+        filename = os.path.basename(path)
+        scene_name = self.obsws_get_current_scene_name()
+
+        response = self.client.call(obs.requests.CreateSource(
+            sourceName=filename,
+            sourceKind='ffmpeg_source',
+            sceneName=scene_name,
+            sourceSettings={'local_file': path}
+        ))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::run_media(): "
+                            f"coudn't add a media source, datain: {response.datain}, dataout: {response.dataout}")
+
+        self.media_queue.append(filename)
+
+        response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=True))
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::run_media(): "
+                            f"coudn't mute a source, datain: {response.datain}, dataout: {response.dataout}")
+
+    def on_event(self, message):
+        if message.name == 'MediaEnded':
+            self.on_media_ended(message)
+
+    def on_media_ended(self, message):
+        """
+        Fired on event MediaEnded. Fires Exception if could't delete a scene item or unmute a source
+        """
+        source_name = message.getSourceName()
+
+        def callback():
+            if source_name in self.media_queue:
+                scene_name = self.obsws_get_current_scene_name()
+
+                response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=source_name))
+                if not response.status:
+                    raise Exception(
+                        f"E PYSERVER::OBS::on_media_ended(): coudn't delete scene item, "
+                        f"datain: {response.datain}, dataout: {response.dataout}")
+                self.media_queue.remove(source_name)
+
+                response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=False))
+                if not response.status:
+                    raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
+                                    f"coudn't unmute a source, datain: {response.datain}, dataout: {response.dataout}")
+
+        self.callback_queue.append(callback)
+
+    def obsws_get_current_scene_name(self):
+        return self.client.call(obs.requests.GetCurrentScene()).getName()
 
     def obsws_get_sources_list(self):
         """

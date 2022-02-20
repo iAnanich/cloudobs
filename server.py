@@ -1,48 +1,88 @@
 import numpy as np
-import obswebsocket as obs
+import obswebsocket as obsws
+import obs
 import obswebsocket.requests as obs_requests
 from obswebsocket import events
 
+
 class Server:
-    def __init__(self, restreams):
+    def __init__(self, server_langs):
         """
-        :param restreams: list of (lang, obs_host, websocket_port, original_media_url)
+        :param server_langs: dict of "lang": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
         :return:
         """
+        self.server_langs = server_langs
+        self.obs_instances = None  # {..., "lang": obs.OBS(), ...}
+        self.is_initialized = False
 
-        # assertions to make sure all parameters are passed properly
-        values, counts = np.unique([x[0] for x in restreams], return_counts=True)
-        for lang, cnt in zip(values, counts):
-            assert cnt == 1, f'E PYSERVER::Server::init(): each lang should be unique in `restreams` list. ' \
-                             f'Lang {lang} contains {cnt} entries'
-        for i, x in enumerate(restreams):
-            assert len(x) == 4, f'E PYSERVER:Server::init(): each restream info in `restreams` list should contain four elements. ' \
-                                f'Element {i} contains {len(x)} elements: {x}'
+    def put_video(self, name):
+        if not self.is_initialized:
+            raise
+        for lang, obs_ in self.obs_instances.items():
+            pass
 
-        self.restreams = restreams  # [... [lang, obs_host, websocket_port, original_media_url], ...]
-        self.obs_clients = {
-            lang: None
-            for lang, _, _, _ in restreams
-        }  # lang: info
+    def drop_connections(self):
+        for lang, client in self.obs_instances.items():
+            try:
+                client.disconnect()
+            except:
+                pass
 
     def _establish_connections(self):
         """
         establish connections
-        :return:
+        :return: True/False
         """
-        for lang, obs_host, websocket_port, _ in self.restreams:
-            client = obs.obsws(obs_host, int(websocket_port))
+        # create obs ws clients
+        self.obs_instances = {
+            lang: obsws.obsws(host=lang_info['obs_host'], port=int(lang_info['websocket_port']))
+            for lang, lang_info in self.server_langs.items()
+        }
+        # establish connections
+        for lang, client in self.obs_instances.items():
+            # if couldn't establish a connection
             try:
                 client.connect()
-            except obs.core.exceptions.ConnectionFailure as exception:
-                print(f"E PYSERVER::Server::initialize(): couldn't connect to {obs_host}:{websocket_port}")
-                raise exception
-            self.obs_clients[lang] = client
-        print(f"I PYSERVER::Server::initialize(): connections are successfully established")
+            except BaseException as ex:
+                return False, f"E PYSERVER::Server::_establish_connections(): Couldn't connect to obs server. " \
+                              f"Lang '{lang}', " \
+                              f"host '{self.server_langs[lang]['obs_host']}', " \
+                              f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+
+        return True, ''
+
+    def _initialize_obs_controllers(self):
+        # create obs controller instances
+        self.obs_instances = {
+            lang: obs.OBS(lang, client)
+            for lang, client in self.obs_instances.items()
+        }
+        # reset scenes, create original media sources
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                obs_.clear_all_scenes()
+                obs_.setup_scene(scene_name=obs.MAIN_SCENE_NAME)
+                obs_.set_original_media_source(scene_name=obs.MAIN_SCENE_NAME,
+                                               original_media_source=self.server_langs[lang]['original_media_url'])
+            except BaseException as ex:
+                return False, f"E PYSERVER::Server::_initialize_obs_controllers(): Couldn't initialize obs controller. " \
+                              f"Lang: '{lang}', " \
+                              f"host '{self.server_langs[lang]['obs_host']}', " \
+                              f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+
+        return True, ''
 
     def initialize(self):
         """
-        establish connections, ...
-        :return:
+        establish connections, initialize obs controllers, setup scenes, create original media sources
+        :return: True/False, error message
         """
-        self._establish_connections()
+        status, err_msg = self._establish_connections()
+        if not status:
+            self.drop_connections()
+            return status, err_msg
+        status, err_msg = self._initialize_obs_controllers()
+        if not status:
+            self.drop_connections()
+            return status, err_msg
+        return status, ''
