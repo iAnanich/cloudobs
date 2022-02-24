@@ -1,25 +1,32 @@
-import numpy as np
+import os
 import obswebsocket as obsws
 import obs
-import obswebsocket.requests as obs_requests
-from obswebsocket import events
 
 
 class Server:
-    def __init__(self, server_langs):
+    def __init__(self, server_langs, base_media_path):
         """
         :param server_langs: dict of "lang": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
         :return:
         """
         self.server_langs = server_langs
+        self.base_media_path = base_media_path
+
         self.obs_instances = None  # {..., "lang": obs.OBS(), ...}
         self.is_initialized = False
 
-    def put_video(self, name):
+    def run_media(self, name):
         if not self.is_initialized:
-            raise
+            raise RuntimeError("The server was not initialized yet")
         for lang, obs_ in self.obs_instances.items():
-            pass
+            path = os.path.join(self.base_media_path, lang, name)
+            try:
+                obs_.run_media(path)
+            except BaseException as ex:
+                print(ex)  # log
+                print(f"E PYSERVER::Server::run_media(): couldn't play media, lang {lang}")
+                return False
+        return True
 
     def drop_connections(self):
         for lang, client in self.obs_instances.items():
@@ -85,4 +92,6 @@ class Server:
         if not status:
             self.drop_connections()
             return status, err_msg
+
+        self.is_initialized = True
         return status, ''

@@ -1,31 +1,24 @@
 import time
-import re
 import json
-
+import os
 import obswebsocket as obsws
 import obswebsocket.requests
-from obswebsocket import events
-
-import obs
 import server
-
-from pydrive.auth import GoogleAuth
-from pydrive.drive import GoogleDrive
-
 from flask import Flask
 from flask import request
+from dotenv import load_dotenv
+
+load_dotenv()
+MEDIA_DIR = os.getenv('GCP_PROJECT_ID')
 
 app = Flask(__name__)
-obs_server = None
-
-def on_event(message):
-    print(u"Got message: {}".format(message))
+obs_server: server.Server = None
 
 @app.route('/init', methods=['POST'])
 def init():
     """
     Query parameters:
-    server_langs: dict of "lang": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
+    server_langs: json, dict of "lang": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
     e.g.: {"rus": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}, "eng": ...}
     :return:
     """
@@ -49,7 +42,7 @@ def init():
         # TODO: validate original_media_url
 
     global obs_server
-    obs_server = server.Server(server_langs=server_langs)
+    obs_server = server.Server(server_langs=server_langs, base_media_path=MEDIA_DIR)
     status, err_msg = obs_server.initialize()
 
     return 200 if status else 500, err_msg
@@ -65,6 +58,10 @@ def media_play():
     name = request.args.get('name', None)
     if not name:
         return 500, "`name` must not be empty"
+
+    result = obs_server.run_media(name)
+
+    return 200 if result else 500, ''
 
 
 

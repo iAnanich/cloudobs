@@ -1,0 +1,10 @@
+###### Requirements without Version Specifiers ######
+python-dotenv~=0.19.2
+obs-websocket-py
+flask~=1.1.2
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+
+###### Requirements with Version Specifiers ######
+

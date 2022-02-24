@@ -1,8 +1,6 @@
 import os
 import obswebsocket as obs
 import obswebsocket.requests as obs_requests
-from obswebsocket import events
-from threading import Lock
 
 ORIGINAL_STREAM_SOURCE_NAME = 'original_stream'
 MAIN_SCENE_NAME = 'main'
