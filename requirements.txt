@@ -1,6 +1,6 @@
 ###### Requirements without Version Specifiers ######
 python-dotenv~=0.19.2
-obs-websocket-py=0.5.3
+obs-websocket-py==0.5.3
 flask~=1.1.2
 google-api-python-client
 google-auth-httplib2
