@@ -15,6 +15,30 @@ class Server:
         self.obs_instances = None  # {..., "lang": obs.OBS(), ...}
         self.is_initialized = False
 
+    def initialize(self):
+        """
+        establish connections, initialize obs controllers, setup scenes, create original media sources
+        :return: True/False, error message
+        """
+        status, err_msg = self._establish_connections()
+        if not status:
+            self.drop_connections()
+            return status, err_msg
+        status, err_msg = self._initialize_obs_controllers()
+        if not status:
+            self.drop_connections()
+            return status, err_msg
+
+        self.is_initialized = True
+        return status, ''
+
+    def drop_connections(self):
+        for lang, client in self.obs_instances.items():
+            try:
+                client.disconnect()
+            except:
+                pass
+
     def run_media(self, name):
         if not self.is_initialized:
             raise RuntimeError("The server was not initialized yet")
@@ -28,12 +52,14 @@ class Server:
                 return False
         return True
 
-    def drop_connections(self):
-        for lang, client in self.obs_instances.items():
-            try:
-                client.disconnect()
-            except:
-                pass
+    def set_stream_settings(self, server, key):
+        if not self.is_initialized:
+            raise RuntimeError("The server was not initialized yet")
+        # TODO: validate server and key
+        settings_ = {
+            'server': server,
+            'key': key
+        }
 
     def _establish_connections(self):
         """
@@ -78,20 +104,3 @@ class Server:
                               f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
 
         return True, ''
-
-    def initialize(self):
-        """
-        establish connections, initialize obs controllers, setup scenes, create original media sources
-        :return: True/False, error message
-        """
-        status, err_msg = self._establish_connections()
-        if not status:
-            self.drop_connections()
-            return status, err_msg
-        status, err_msg = self._initialize_obs_controllers()
-        if not status:
-            self.drop_connections()
-            return status, err_msg
-
-        self.is_initialized = True
-        return status, ''

@@ -9,7 +9,7 @@ from flask import request
 from dotenv import load_dotenv
 
 load_dotenv()
-MEDIA_DIR = os.getenv('GCP_PROJECT_ID')
+MEDIA_DIR = os.getenv('MEDIA_DIR')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -31,10 +31,7 @@ def init():
             if attr not in lang_info:
                 return 500, f"Please specify `{attr}` for lang '{lang}'"
 
-        obs_host = lang_info['obs_host']
         websockets_port = lang_info['websockets_port']
-        password = lang_info['password']
-        original_media_url = lang_info['original_media_url']
 
         # TODO: validate `obs_host`
         if not str(websockets_port).isdigit():

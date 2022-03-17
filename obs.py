@@ -134,6 +134,42 @@ class OBS:
             raise Exception(f"E PYSERVER::OBS::run_media(): "
                             f"coudn't mute a source, datain: {response.datain}, dataout: {response.dataout}")
 
+    def set_stream_settings(self, server, key, type="rtmp_custom"):
+        """
+        Sets the streaming settings of the server
+        """
+        # TODO: validate server and key
+        settings_ = {
+            'server': server,
+            'key': key
+        }
+
+        response = self.client.call(obs.requests.SetStreamSettings(type=type, settings=settings_, save=True))
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::set_stream_settings(): "
+                            f"coudn't set stream settings, lang: {self.lang}, "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
+    def start_streaming(self):
+        """
+        Starts the streaming
+        """
+        response = self.client.call(obs.requests.StartStreaming())
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::start_streaming(): "
+                            f"coudn't start streaming, lang: {self.lang}, "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
+    def stop_streaming(self):
+        """
+        Starts the streaming
+        """
+        response = self.client.call(obs.requests.StopStreaming())
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::stop_streaming(): "
+                            f"coudn't stop streaming, lang: {self.lang}, "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
     def on_event(self, message):
         if message.name == 'MediaEnded':
             self.on_media_ended(message)

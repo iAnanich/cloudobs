@@ -7,11 +7,19 @@ import time
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 
+from dotenv import load_dotenv
+
+load_dotenv()
+DRIVE_ID = os.getenv('GDRIVE_DRIVE_ID')
+LOCAL_DIR = os.getenv('GDRIVE_LOCAL_DIR')
+API_KEY = os.getenv('GDRIVE_API_KEY')
+SYNC_SECONDS = os.getenv('GDRIVE_SYNC_SECONDS')
+
 
 def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
     """
-    Run this method in a separate thread. Every `sync_period_seconds`
-    lists child files within a specified `drive_id`, compares with a list of files
+    Every `sync_period_seconds` lists child files within
+    a specified `drive_id`, compares with a list of files
     in `local_dir` directory, and downloads the new ones.
     Does not raise exceptions.
     """
@@ -50,3 +58,10 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
                             print(f"I PYSERVER::run_drive_sync(): Downloaded {fname} => {flocal}, status: {status}")
         except Exception as ex:
             print(f"E PYSERVER::run_drive_sync(): {ex}")
+
+
+if __name__ == '__main__':
+    run_drive_sync(drive_id=DRIVE_ID,
+                   sync_period_seconds=SYNC_SECONDS,
+                   local_dir=LOCAL_DIR,
+                   api_key=API_KEY)
