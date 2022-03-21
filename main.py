@@ -60,38 +60,39 @@ def media_play():
 
     return 200 if result else 500, ''
 
-
+if __name__ == '__main__':
+    app.run('0.0.0.0', 5000)
 
 # ==================================== FOR TESTING
-client = obswebsocket.obsws("localhost", 4441)
-# client.register(on_event)
-client.connect()
-
-# client.call(obswebsocket.requests.GetVersion()).getObsWebsocketVersion()
-client.call(obswebsocket.requests.GetSourcesList()).getSources()
-client.call(obswebsocket.requests.GetSourceSettings('original_media')).getSourceSettings()
-obswebsocket.requests.CreateSource(sourceName='name', sourceKind='', sceneName='', sourceSettings='')
-client.call(obswebsocket.requests.GetSceneList()).getScenes()
-
-client.call(obswebsocket.requests.GetMute('original_stream')).getMuted()
-client.call(obswebsocket.requests.GetAudioMonitorType('original_stream')).getMonitorType()  # none, monitorOnly, monitorAndOutput
-client.call(obswebsocket.requests.SetAudioMonitorType(sourceName='original_stream', monitorType='none'))
-
-'''
-{'input': 'rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333',
- 'is_local_file': False}
- '''
-items = client.call(obswebsocket.requests.GetSceneItemList(sceneName='main_1')).getSceneItems()
-for item in items:
-    print(item)
-    client.call(obswebsocket.requests.DeleteSceneItem(item=item))
-
-
-try:
-    time.sleep(100)
-
-except KeyboardInterrupt:
-    pass
-
-client.disconnect()
-obswebsocket.requests.GetSourceSettings
+# client = obswebsocket.obsws("localhost", 4441)
+# # client.register(on_event)
+# client.connect()
+#
+# # client.call(obswebsocket.requests.GetVersion()).getObsWebsocketVersion()
+# client.call(obswebsocket.requests.GetSourcesList()).getSources()
+# client.call(obswebsocket.requests.GetSourceSettings('original_media')).getSourceSettings()
+# obswebsocket.requests.CreateSource(sourceName='name', sourceKind='', sceneName='', sourceSettings='')
+# client.call(obswebsocket.requests.GetSceneList()).getScenes()
+#
+# client.call(obswebsocket.requests.GetMute('original_stream')).getMuted()
+# client.call(obswebsocket.requests.GetAudioMonitorType('original_stream')).getMonitorType()  # none, monitorOnly, monitorAndOutput
+# client.call(obswebsocket.requests.SetAudioMonitorType(sourceName='original_stream', monitorType='none'))
+#
+# '''
+# {'input': 'rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333',
+#  'is_local_file': False}
+#  '''
+# items = client.call(obswebsocket.requests.GetSceneItemList(sceneName='main_1')).getSceneItems()
+# for item in items:
+#     print(item)
+#     client.call(obswebsocket.requests.DeleteSceneItem(item=item))
+#
+#
+# try:
+#     time.sleep(100)
+#
+# except KeyboardInterrupt:
+#     pass
+#
+# client.disconnect()
+# obswebsocket.requests.GetSourceSettings
