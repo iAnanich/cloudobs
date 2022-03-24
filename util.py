@@ -6,7 +6,7 @@ def validate_init_params(server_langs):
         for attr in ['host_url', 'websocket_port', 'password', 'original_media_url']:
             if attr not in lang_info:
                 return ExecutionStatus(status=False, message=f"Please specify `{attr}` attribute for lang '{lang}'")
-        websockets_port = lang_info['websockets_port']
+        websockets_port = lang_info['websocket_port']
         # TODO: validate `obs_host`
         if not str(websockets_port).isdigit():
             return ExecutionStatus(status=False, message="`websocket_port` must be a number")

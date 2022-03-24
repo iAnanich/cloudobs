@@ -31,7 +31,7 @@ def init():
     """
     Query parameters:
     server_langs: json, dict of "lang": {"host_url": "base_url", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
-    e.g.: {"rus": {"host": "http://255.255.255.255:5000", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}, "eng": ...}
+    e.g.: {"rus": {"host_url": "http://255.255.255.255:5000", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}, "eng": ...}
     :return:
     """
     server_langs = request.args.get('server_langs', '')
@@ -60,7 +60,7 @@ def init():
 
         query_params = urlencode({"server_langs": json.dumps(lang_info)})
 
-        request_ = f"{instance_service_addrs[lang]}{API_INIT_ROUTE}/?{query_params}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_INIT_ROUTE}?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -92,7 +92,7 @@ def media_play():
     # broadcast request for all lang servers
     for lang in instance_service_addrs:
         query_params = urlencode({"name": name, "use_file_num": use_file_num})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_MEDIA_PLAY_ROUTE}/?{query_params}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_MEDIA_PLAY_ROUTE}?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -122,7 +122,7 @@ def set_stream_settings():
     # broadcast request for all lang servers
     for lang in instance_service_addrs:
         query_params = urlencode(stream_settings)
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_SET_STREAM_SETTINGS_ROUTE}/?{query_params}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_SET_STREAM_SETTINGS_ROUTE}?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -143,7 +143,7 @@ def stream_start():
 
     # broadcast request for all lang servers
     for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_START_ROUTE}/"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_START_ROUTE}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -164,7 +164,7 @@ def stream_stop():
 
     # broadcast request for all lang servers
     for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_STOP_ROUTE}/"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_STOP_ROUTE}"
         response = requests.post(request_)
 
         if response.status_code != 200:
