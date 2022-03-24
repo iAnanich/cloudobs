@@ -11,9 +11,13 @@ import util
 from util import ExecutionStatus
 
 load_dotenv()
+
 MEDIA_DIR = os.getenv('MEDIA_DIR')
 API_INIT_ROUTE = os.getenv('API_INIT_ROUTE')
 API_MEDIA_PLAY_ROUTE = os.getenv('API_MEDIA_PLAY_ROUTE')
+API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
+API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
+API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -58,6 +62,44 @@ def media_play():
 
     use_file_num = bool(int(use_file_num))
     status: ExecutionStatus = obs_server.run_media(name, use_file_num)
+
+    return status.to_http_status()
+
+
+@app.route(API_SET_STREAM_SETTINGS_ROUTE, methods=['POST'])
+def set_stream_settings():
+    """
+    Query parameters:
+    stream_settings: json dictionary,
+    e.g. {"lang": {"server": "rtmp://...", "key": "..."}, ...}
+    :return:
+    """
+    stream_settings = request.args.get('stream_settings', None)
+    stream_settings = json.loads(stream_settings)
+
+    status: ExecutionStatus = obs_server.set_stream_settings(stream_settings=stream_settings)
+
+    return status.to_http_status()
+
+
+@app.route(API_STREAM_START_ROUTE, methods=['POST'])
+def stream_start():
+    """
+    Starts streaming on all machines
+    :return:
+    """
+    status: ExecutionStatus = obs_server.start_streaming()
+
+    return status.to_http_status()
+
+
+@app.route(API_STREAM_STOP_ROUTE, methods=['POST'])
+def stream_stop():
+    """
+    Stops streaming on all machines
+    :return:
+    """
+    status: ExecutionStatus = obs_server.stop_streaming()
 
     return status.to_http_status()
 

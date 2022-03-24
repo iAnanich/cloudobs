@@ -13,13 +13,17 @@ import util
 from util import ExecutionStatus
 
 load_dotenv()
+
 MEDIA_DIR = os.getenv('MEDIA_DIR')
 API_INIT_ROUTE = os.getenv('API_INIT_ROUTE')
 API_MEDIA_PLAY_ROUTE = os.getenv('API_MEDIA_PLAY_ROUTE')
+API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
+API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
+API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
-instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address", "init": True/False}
+instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address"}
 
 
 @app.route(API_INIT_ROUTE, methods=['POST'])
@@ -47,7 +51,6 @@ def init():
         # fill `instance_service_addrs`
         instance_service_addrs[lang] = {
             "addr": lang_info["host_url"].strip('/'),
-            "init": False
         }
         lang_info.pop("host_url")
         # POST initialization for every instance service
@@ -64,10 +67,6 @@ def init():
             msg_ = f"E PYSERVER::init(): couldn't initialize server for {lang}, details: {response.text}"
             print(msg_)
             status.append_error(msg_)
-
-            instance_service_addrs[lang]["init"] = False
-        else:
-            instance_service_addrs[lang]["init"] = True
 
     return status.to_http_status()
 
@@ -92,15 +91,84 @@ def media_play():
 
     # broadcast request for all lang servers
     for lang in instance_service_addrs:
-        if not instance_service_addrs[lang]['init']:
-            continue
-
         query_params = urlencode({"name": name, "use_file_num": use_file_num})
         request_ = f"{instance_service_addrs[lang]['addr']}{API_MEDIA_PLAY_ROUTE}/?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
             msg_ = f"E PYSERVER::media_play(): couldn't play media for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
+@app.route(API_SET_STREAM_SETTINGS_ROUTE, methods=['POST'])
+def set_stream_settings():
+    """
+    Query parameters:
+    stream_settings: json dictionary,
+    e.g. {"lang": {"server": "rtmp://...", "key": "..."}, ...}
+    :return:
+    """
+    stream_settings = request.args.get('stream_settings', None)
+    stream_settings = json.loads(stream_settings)
+
+    if 'key' not in stream_settings or 'server' not in stream_settings:
+        return ExecutionStatus(status=False, message="Please specify both `server` and `key` attributes")
+
+    status = ExecutionStatus(status=True)
+
+    # broadcast request for all lang servers
+    for lang in instance_service_addrs:
+        query_params = urlencode(stream_settings)
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_SET_STREAM_SETTINGS_ROUTE}/?{query_params}"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::set_stream_settings(): couldn't set stream settings for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
+@app.route(API_STREAM_START_ROUTE, methods=['POST'])
+def stream_start():
+    """
+    Starts streaming on all machines
+    :return:
+    """
+    status = ExecutionStatus(status=True)
+
+    # broadcast request for all lang servers
+    for lang in instance_service_addrs:
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_START_ROUTE}/"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::stream_start(): couldn't start streaming for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
+@app.route(API_STREAM_STOP_ROUTE, methods=['POST'])
+def stream_stop():
+    """
+    Stops streaming on all machines
+    :return:
+    """
+    status = ExecutionStatus(status=True)
+
+    # broadcast request for all lang servers
+    for lang in instance_service_addrs:
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_STOP_ROUTE}/"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::stream_stop(): couldn't stop streaming for {lang}, details: {response.text}"
             print(msg_)
             status.append_error(msg_)
 

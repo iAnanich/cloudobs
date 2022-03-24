@@ -113,6 +113,44 @@ class Server:
 
         return status
 
+    def start_streaming(self):
+        """
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                obs_.start_streaming()
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::start_streaming(): couldn't play media, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                #return ExecutionStatus(status=False, message=msg_)
+
+    def stop_streaming(self):
+        """
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                obs_.stop_streaming()
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::stop_streaming(): couldn't play media, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                #return ExecutionStatus(status=False, message=msg_)
+
+        return status
+
     def _establish_connections(self, verbose=True):
         """
         establish connections
