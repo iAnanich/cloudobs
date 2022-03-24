@@ -25,7 +25,7 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
     """
     while True:
         try:
-            time.sleep(sync_period_seconds)
+            time.sleep(int(sync_period_seconds))
             # every time rebuild service, since I am not sure of there is no timeout
             with build('drive', 'v3', developerKey=api_key) as service:
                 # list the drive files, the response is like the following structure:
@@ -47,7 +47,7 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
                     # if such file is not found locally, download it
                     flocal = os.path.join(local_dir, fname)
                     if not os.path.isfile(flocal):
-                        request = service.files().get_media(fileId='')
+                        request = service.files().get_media(fileId=fid)
 
                         with io.FileIO(flocal, mode='w') as fh:
                             downloader = MediaIoBaseDownload(fh, request)
