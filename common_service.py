@@ -20,6 +20,7 @@ API_MEDIA_PLAY_ROUTE = os.getenv('API_MEDIA_PLAY_ROUTE')
 API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
 API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_START_ROUTE')
+API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -65,6 +66,26 @@ def init():
 
         if response.status_code != 200:
             msg_ = f"E PYSERVER::init(): couldn't initialize server for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
+@app.route(API_CLEANUP_ROUTE, methods=['POST'])
+def cleanup():
+    """
+    :return:
+    """
+    status = ExecutionStatus(status=True)
+
+    # broadcast request for all lang servers
+    for lang in instance_service_addrs:
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_CLEANUP_ROUTE}"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::cleanup(): couldn't cleanup server for {lang}, details: {response.text}"
             print(msg_)
             status.append_error(msg_)
 

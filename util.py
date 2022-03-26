@@ -79,4 +79,5 @@ class ExecutionStatus:
         `(message, code)`
         """
         code = 200 if self.__bool__() else 500
-        return self.message, code
+        msg = 'Ok' if code == 200 and not self.message else self.message
+        return msg, code

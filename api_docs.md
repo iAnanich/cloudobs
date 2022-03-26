@@ -12,6 +12,8 @@
      }
      ```
  - Returns `(200, "Ok")` on success, otherwise `(500, "error details")`
+### `POST /cleanup`
+ - Cleans up the server: stop streaming -> reset scenes -> close connections
 ### `POST /media/play`
  - Plays the video specified in parameters
  - Accepts the following parameters:

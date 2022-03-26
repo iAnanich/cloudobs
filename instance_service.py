@@ -18,6 +18,7 @@ API_MEDIA_PLAY_ROUTE = os.getenv('API_MEDIA_PLAY_ROUTE')
 API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
 API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_START_ROUTE')
+API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -33,15 +34,33 @@ def init():
     server_langs = request.args.get('server_langs', '')
     server_langs = json.loads(server_langs)
 
-    status: ExecutionStatus = util.validate_init_params(server_langs)
-    if not status:
-        return status.to_http_status()
+    # status: ExecutionStatus = util.validate_init_params(server_langs)
+    # if not status:
+    #     return status.to_http_status()
 
     global obs_server
     obs_server = server.Server(server_langs=server_langs, base_media_path=MEDIA_DIR)
     status: ExecutionStatus = obs_server.initialize()
 
     return status.to_http_status()
+
+
+@app.route(API_CLEANUP_ROUTE, methods=['POST'])
+def cleanup():
+    """
+    :return:
+    """
+    global obs_server
+
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    if obs_server is not None:
+        obs_server.cleanup()
+        del obs_server
+        obs_server = None
+
+    return ExecutionStatus(status=True).to_http_status()
 
 
 @app.route(API_MEDIA_PLAY_ROUTE, methods=['POST'])
@@ -53,6 +72,9 @@ def media_play():
     e.g.: 001_video_desc.mp4
     :return:
     """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
     name = request.args.get('name', None)
     use_file_num = request.args.get('use_file_num', '0')
 
@@ -74,6 +96,9 @@ def set_stream_settings():
     e.g. {"lang": {"server": "rtmp://...", "key": "..."}, ...}
     :return:
     """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
     stream_settings = request.args.get('stream_settings', None)
     stream_settings = json.loads(stream_settings)
 
@@ -88,6 +113,9 @@ def stream_start():
     Starts streaming on all machines
     :return:
     """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
     status: ExecutionStatus = obs_server.start_streaming()
 
     return status.to_http_status()
@@ -99,6 +127,9 @@ def stream_stop():
     Stops streaming on all machines
     :return:
     """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
     status: ExecutionStatus = obs_server.stop_streaming()
 
     return status.to_http_status()

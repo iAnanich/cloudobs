@@ -16,6 +16,7 @@ class Server:
         self.base_media_path = base_media_path
 
         self.obs_instances = None  # {..., "lang": obs.OBS(), ...}
+        self.obs_clients = None
         self.is_initialized = False
 
     def initialize(self):
@@ -38,8 +39,13 @@ class Server:
         self.is_initialized = True
         return status
 
+    def cleanup(self):
+        self.stop_streaming()  # no need to check status
+        self._reset_scenes()
+        self.drop_connections()
+
     def drop_connections(self):
-        for lang, client in self.obs_instances.items():
+        for lang, client in self.obs_clients.items():
             try:
                 client.disconnect()
             except:
@@ -157,7 +163,7 @@ class Server:
         :return: True/False
         """
         # create obs ws clients
-        self.obs_instances = {
+        self.obs_clients = {
             lang: obsws.obsws(host=lang_info['obs_host'], port=int(lang_info['websocket_port']))
             for lang, lang_info in self.server_langs.items()
         }
@@ -184,7 +190,7 @@ class Server:
         # create obs controller instances
         self.obs_instances = {
             lang: obs.OBS(lang, client)
-            for lang, client in self.obs_instances.items()
+            for lang, client in self.obs_clients.items()
         }
 
         status = ExecutionStatus(status=True)
@@ -201,6 +207,22 @@ class Server:
                 f"Lang: '{lang}', "
                 f"host '{self.server_langs[lang]['obs_host']}', "
                 f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+                if verbose:
+                    print(msg_)
+                status.append_error(msg_)
+
+        return status
+
+    def _reset_scenes(self, verbose=True):
+        status = ExecutionStatus(status=True)
+
+        # reset scenes, create original media sources
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                obs_.clear_all_scenes()
+                obs_.setup_scene(scene_name=obs.MAIN_SCENE_NAME)
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::_reset_scenes(): Couldn't reset scenes. Details: {ex}"
                 if verbose:
                     print(msg_)
                 status.append_error(msg_)
