@@ -135,7 +135,9 @@ class Server:
                 msg_ = f"E PYSERVER::Server::start_streaming(): couldn't play media, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
-                #return ExecutionStatus(status=False, message=msg_)
+                #return ExecutionStatus(status=False, message=msg_
+
+        return status
 
     def stop_streaming(self):
         """
