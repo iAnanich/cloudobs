@@ -148,7 +148,7 @@ def set_stream_settings():
     # broadcast request for all lang servers
     for lang in stream_settings:
         params_ = {lang: stream_settings[lang]}
-        query_params = urlencode({'stream_settings': params_})
+        query_params = urlencode({'stream_settings': json.dumps(params_)})
         request_ = f"{instance_service_addrs[lang]['addr']}{API_SET_STREAM_SETTINGS_ROUTE}?{query_params}"
         response = requests.post(request_)
 
