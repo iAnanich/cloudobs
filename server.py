@@ -171,7 +171,7 @@ class Server:
         status = ExecutionStatus(status=True)
 
         # establish connections
-        for lang, client in self.obs_instances.items():
+        for lang, client in self.obs_clients.items():
             # if couldn't establish a connection
             try:
                 client.connect()
