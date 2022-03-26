@@ -135,8 +135,13 @@ def set_stream_settings():
     stream_settings = request.args.get('stream_settings', None)
     stream_settings = json.loads(stream_settings)
 
-    if 'key' not in stream_settings or 'server' not in stream_settings:
-        return ExecutionStatus(status=False, message="Please specify both `server` and `key` attributes")
+    status = ExecutionStatus(status=True)
+    for lang in stream_settings:
+        stream_settings_ = stream_settings[lang]
+        if 'key' not in stream_settings_ or 'server' not in stream_settings_:
+            return status.append_error("Please specify both `server` and `key` attributes")
+    if not status:
+        return status.to_http_status()
 
     status = ExecutionStatus(status=True)
 
