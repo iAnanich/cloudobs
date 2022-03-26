@@ -103,7 +103,7 @@ class Server:
         status = ExecutionStatus(status=True)
 
         for lang, settings_ in stream_settings.items():
-            if lang not in self.obs_instances.items():
+            if lang not in self.obs_instances:
                 msg_ = f"W PYSERVER::Server::set_stream_settings(): no obs instanse found with lang {lang} specified"
                 print(msg_)
                 status.append_warning(msg_)
