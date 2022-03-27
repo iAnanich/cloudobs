@@ -204,6 +204,7 @@ class Server:
                 obs_.setup_scene(scene_name=obs.MAIN_SCENE_NAME)
                 obs_.set_original_media_source(scene_name=obs.MAIN_SCENE_NAME,
                                                original_media_source=self.server_langs[lang]['original_media_url'])
+                obs_.setup_ts_sound()
             except BaseException as ex:
                 msg_ = f"E PYSERVER::Server::_initialize_obs_controllers(): Couldn't initialize obs controller. "
                 f"Lang: '{lang}', "

@@ -134,6 +134,35 @@ class OBS:
             raise Exception(f"E PYSERVER::OBS::run_media(): "
                             f"coudn't mute a source, datain: {response.datain}, dataout: {response.dataout}")
 
+    def setup_ts_sound(self):
+        """
+        Adds/Resets teamspeak audio input (default device).
+        """
+        TS_INPUT_NAME = 'ts_input'
+
+        current_scene = self.obsws_get_current_scene_name()
+        items = [{'id': item['itemId'], 'name': item['sourceName']}
+                 for item in self.obsws_get_scene_item_list(scene_name=current_scene)
+                 if item['sourceName'] == TS_INPUT_NAME]
+
+        for item in items:
+            response = self.client.call(obs.requests.DeleteSceneItem(scene=current_scene, item=item))
+            if not response.status:  # if not deleted
+                raise Exception(
+                    f"E PYSERVER::OBS::setup_ts_sound(): coudn't delete scene item, "
+                    f"datain: {response.datain}, dataout: {response.dataout}")
+
+
+        response = self.client.call(obs.requests.CreateSource(
+            sourceName=TS_INPUT_NAME,
+            sourceKind='pulse_output_capture',
+            sceneName=current_scene,
+        ))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::setup_ts_sound(): "
+                            f"coudn't add a media source, datain: {response.datain}, dataout: {response.dataout}")
+
     def set_stream_settings(self, server, key, type="rtmp_custom"):
         """
         Sets the streaming settings of the server
