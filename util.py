@@ -44,6 +44,34 @@ class ServiceAddrStorage:
     def items(self):
         return self.dct.items()
 
+class MultilangParams:
+    def __init__(self, params_dict, langs=None):
+        self.params_dict = params_dict
+        self.langs = langs
+        self.all_langs = len(params_dict) == 1 and '__all__' in params_dict
+
+    def __getitem__(self, item):
+        if self.all_langs:
+            return self.params_dict['__all__']
+        return self.params_dict[item]
+
+    def __setitem__(self, key, value):
+        if self.all_langs:
+            raise NotImplementedError()
+        self.params_dict[key] = value
+
+    def __iter__(self):
+        return self.params_dict.__iter__()
+
+    def items(self):
+        return self.params_dict.items()
+
+    def list_langs(self):
+        if self.all_langs:
+            return self.langs
+        return list(self.params_dict.keys())
+
+
 
 class ExecutionStatus:
     def __init__(self, status, message=''):

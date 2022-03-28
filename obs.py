@@ -4,6 +4,7 @@ import obswebsocket.requests as obs_requests
 
 ORIGINAL_STREAM_SOURCE_NAME = 'original_stream'
 MAIN_SCENE_NAME = 'main'
+TS_INPUT_NAME = 'ts_input'
 
 def create_event_handler(obs_instance):
     def foo(message):
@@ -138,7 +139,6 @@ class OBS:
         """
         Adds/Resets teamspeak audio input (default device).
         """
-        TS_INPUT_NAME = 'ts_input'
 
         current_scene = self.obsws_get_current_scene_name()
         items = [{'id': item['itemId'], 'name': item['sourceName']}
@@ -152,7 +152,6 @@ class OBS:
                     f"E PYSERVER::OBS::setup_ts_sound(): coudn't delete scene item, "
                     f"datain: {response.datain}, dataout: {response.dataout}")
 
-
         response = self.client.call(obs.requests.CreateSource(
             sourceName=TS_INPUT_NAME,
             sourceKind='pulse_output_capture',
@@ -162,6 +161,21 @@ class OBS:
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::setup_ts_sound(): "
                             f"coudn't add a media source, datain: {response.datain}, dataout: {response.dataout}")
+
+    def set_ts_sync_offset(self, offset):
+        """
+        Sets teamspeak audio ('ts_input' source) sync offset
+        :return:
+        """
+        response = self.client.call(obs.requests.SetSyncOffset(
+            source=TS_INPUT_NAME,
+            offset=offset * 1_000_000,  # convert to nanoseconds (refer to documentation)
+        ))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::set_ts_sync_offset(): "
+                            f"coudn't set teamspeak sync offset, "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
 
     def set_stream_settings(self, server, key, type="rtmp_custom"):
         """

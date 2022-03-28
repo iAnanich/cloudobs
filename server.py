@@ -119,6 +119,34 @@ class Server:
 
         return status
 
+    def set_ts_sync_offset(self, offset_settings):
+        """
+        :param offset_settings: dictionary,
+        e.g. {"lang": 4000, ...} (note, offset in milliseconds)
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, offset in offset_settings.items():
+            if lang not in self.obs_instances:
+                msg_ = f"W PYSERVER::Server::set_ts_sync_offset(): no obs instanse found with lang {lang} specified"
+                print(msg_)
+                status.append_warning(msg_)
+                continue
+            obs_: obs.OBS = self.obs_instances[lang]
+            try:
+                obs_.set_ts_sync_offset(offset)
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::set_ts_sync_offset(): couldn't set sync offset, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                #return ExecutionStatus(status=False, message=msg_)
+
+        return status
+
     def start_streaming(self):
         """
         :return:

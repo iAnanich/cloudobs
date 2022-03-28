@@ -19,6 +19,7 @@ API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
 API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
 API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
+API_TS_OFFSET = os.getenv('API_TS_OFFSET')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -131,6 +132,25 @@ def stream_stop():
         return ExecutionStatus(status=False, message="The server was not initialized yet")
 
     status: ExecutionStatus = obs_server.stop_streaming()
+
+    return status.to_http_status()
+
+
+@app.route(API_TS_OFFSET, methods=['POST'])
+def set_ts_offset():
+    """
+    Query parameters:
+    offset_settings: json dictionary,
+    e.g. {"lang": 4000, ...} (note, offset in milliseconds)
+    :return:
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    offset_settings = request.args.get('offset_settings', None)
+    offset_settings = json.loads(offset_settings)
+
+    status: ExecutionStatus = obs_server.set_ts_sync_offset(offset_settings=offset_settings)
 
     return status.to_http_status()
 

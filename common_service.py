@@ -10,7 +10,7 @@ from flask import request
 from dotenv import load_dotenv
 from urllib.parse import urlencode
 import util
-from util import ExecutionStatus
+from util import ExecutionStatus, MultilangParams
 
 load_dotenv()
 
@@ -21,10 +21,12 @@ API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
 API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
 API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
+API_TS_OFFSET = os.getenv('API_TS_OFFSET')
 
 app = Flask(__name__)
 obs_server: server.Server = None
 instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address"}
+langs = []
 
 
 @app.route(API_INIT_ROUTE, methods=['POST'])
@@ -48,7 +50,11 @@ def init():
     # in the following loop we build `server_lang` parameters for each lang and
     # broadcast request for all servers
     global instance_service_addrs  # dict of `"lang": {"addr": "address", "init": True/False}
-    for lang, lang_info in server_langs.items():
+    global langs
+    langs = list(server_langs.keys())
+
+    for lang in server_langs:
+        lang_info = server_langs[lang]
         # fill `instance_service_addrs`
         instance_service_addrs[lang] = {
             "addr": lang_info["host_url"].strip('/'),
@@ -144,9 +150,10 @@ def set_stream_settings():
         return status.to_http_status()
 
     status = ExecutionStatus(status=True)
+    stream_settings = MultilangParams(stream_settings, langs=langs)
 
     # broadcast request for all lang servers
-    for lang in stream_settings:
+    for lang in stream_settings.list_langs():
         params_ = {lang: stream_settings[lang]}
         query_params = urlencode({'stream_settings': json.dumps(params_)})
         request_ = f"{instance_service_addrs[lang]['addr']}{API_SET_STREAM_SETTINGS_ROUTE}?{query_params}"
@@ -202,11 +209,40 @@ def stream_stop():
     return status.to_http_status()
 
 
+@app.route(API_TS_OFFSET, methods=['POST'])
+def set_ts_offset():
+    """
+    Query parameters:
+    offset_settings: json dictionary,
+    e.g. {"lang": 4000, ...} (note, offset in milliseconds)
+    :return:
+    """
+    offset_settings = request.args.get('offset_settings', None)
+    offset_settings = json.loads(offset_settings)
+
+    status = ExecutionStatus(status=True)
+    offset_settings = MultilangParams(offset_settings, langs=langs)
+
+    # broadcast request for all lang servers
+    for lang in offset_settings.list_langs():
+        params_ = {lang: offset_settings[lang]}
+        query_params = urlencode({'offset_settings': json.dumps(params_)})
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET}?{query_params}"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::set_ts_offset(): couldn't set stream settings for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
 if __name__ == '__main__':
     app.run('0.0.0.0', 5000)
 
 # ==================================== FOR TESTING
-# client = obswebsocket.obsws("localhost", 4441)
+# client = obsws.obsws("localhost", 4441)
 # # client.register(on_event)
 # client.connect()
 #
