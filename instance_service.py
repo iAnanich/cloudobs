@@ -192,7 +192,7 @@ def set_ts_volume():
 
 
 @app.route(API_TS_VOLUME, methods=['GET'])
-def get_ts_offset():
+def get_ts_volume():
     """
     Retrieves information about teamspeak sound offset
     :return: {"lang": offset, ...} (note, offset in milliseconds)
