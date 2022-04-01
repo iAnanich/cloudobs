@@ -119,6 +119,27 @@ class Server:
 
         return status
 
+    def get_ts_sync_offset(self):
+        """
+        Retrieves information about teamspeak audio sync offset
+        :return: {"lang": offset_int, ...} (note, offset in milliseconds)
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        data = {}
+
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                offset = obs_.get_ts_sync_offset()
+                data[lang] = offset
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::get_ts_sync_offset(): couldn't retrieve sync offset, lang {lang}. Details: {ex}"
+                print(msg_)  # TODO: logging methods
+                data[lang] = "#"  # TODO: handle errors
+                #return ExecutionStatus(status=False, message=msg_)
+        return data
+
     def set_ts_sync_offset(self, offset_settings):
         """
         :param offset_settings: dictionary,
@@ -141,6 +162,55 @@ class Server:
                 obs_.set_ts_sync_offset(offset)
             except BaseException as ex:
                 msg_ = f"E PYSERVER::Server::set_ts_sync_offset(): couldn't set sync offset, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                #return ExecutionStatus(status=False, message=msg_)
+
+        return status
+
+    def get_ts_volume_db(self):
+        """
+        Retrieves teamspeak sound volume (in decibels)
+        :return: {"lang": volume_db, ...}
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        data = {}
+
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                volume = obs_.get_ts_volume_db()
+                data[lang] = volume
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::get_ts_volume_db(): couldn't retrieve ts volume, lang {lang}. Details: {ex}"
+                print(msg_)  # TODO: logging methods
+                data[lang] = "#"  # TODO: handle errors
+                #return ExecutionStatus(status=False, message=msg_)
+        return data
+
+    def set_ts_volume_db(self, volume_settings):
+        """
+        :param volume_settings: volume dictionary,
+        e.g. {"lang": 0.0, ...}
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, volume in volume_settings.items():
+            if lang not in self.obs_instances:
+                msg_ = f"W PYSERVER::Server::set_ts_volume_db(): no obs instanse found with lang {lang} specified"
+                print(msg_)
+                status.append_warning(msg_)
+                continue
+            obs_: obs.OBS = self.obs_instances[lang]
+            try:
+                obs_.set_ts_volume_db(volume)
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::set_ts_volume_db(): couldn't set ts volume, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
                 #return ExecutionStatus(status=False, message=msg_)

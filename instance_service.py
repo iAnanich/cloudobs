@@ -20,6 +20,7 @@ API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
 API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
 API_TS_OFFSET = os.getenv('API_TS_OFFSET')
+API_TS_VOLUME = os.getenv('API_TS_VOLUME')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -153,6 +154,56 @@ def set_ts_offset():
     status: ExecutionStatus = obs_server.set_ts_sync_offset(offset_settings=offset_settings)
 
     return status.to_http_status()
+
+
+@app.route(API_TS_OFFSET, methods=['GET'])
+def get_ts_offset():
+    """
+    Retrieves information about teamspeak sound offset
+    :return: {"lang": offset, ...} (note, offset in milliseconds)
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    data = obs_server.get_ts_volume_db()
+    data = json.dumps(data)
+
+    return data, 200
+
+
+@app.route(API_TS_VOLUME, methods=['POST'])
+def set_ts_volume():
+    """
+    Query parameters:
+    volume_settings: json dictionary,
+    e.g. {"lang": 0.0, ...}
+    :return:
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = json.loads(volume_settings)
+    # TODO: validate `volume_settings`
+
+    status: ExecutionStatus = obs_server.set_ts_volume_db(volume_settings=volume_settings)
+
+    return status.to_http_status()
+
+
+@app.route(API_TS_VOLUME, methods=['GET'])
+def get_ts_offset():
+    """
+    Retrieves information about teamspeak sound offset
+    :return: {"lang": offset, ...} (note, offset in milliseconds)
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    data = obs_server.get_ts_sync_offset()
+    data = json.dumps(data)
+
+    return data, 200
 
 
 if __name__ == '__main__':

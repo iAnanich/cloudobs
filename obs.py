@@ -4,12 +4,16 @@ import obswebsocket.requests as obs_requests
 
 ORIGINAL_STREAM_SOURCE_NAME = 'original_stream'
 MAIN_SCENE_NAME = 'main'
+MEDIA_SCENE_NAME = 'media'
 TS_INPUT_NAME = 'ts_input'
+
 
 def create_event_handler(obs_instance):
     def foo(message):
         obs_instance.on_event(message)
+
     return foo
+
 
 class OBS:
     def __init__(self, lang, client):
@@ -48,7 +52,7 @@ class OBS:
 
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::add_original_media_source(): "
-                            f"coudn't create a source, datain: {response.datain}, dataout: {response.dataout}")
+                            f"datain: {response.datain}, dataout: {response.dataout}")
 
         request = obs.requests.SetAudioMonitorType(
             sourceName=ORIGINAL_STREAM_SOURCE_NAME, monitorType='none'
@@ -57,9 +61,9 @@ class OBS:
 
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::add_original_media_source(): "
-                            f"coudn't set audio monitor type, datain: {response.datain}, dataout: {response.dataout}")
+                            f"datain: {response.datain}, dataout: {response.dataout}")
 
-    def setup_scene(self, scene_name='main'):
+    def setup_scene(self, scene_name='main', switch_scene=True):
         """
         Creates (if not been created) a scene called `scene_name` and sets it as a current scene.
         If it has been created, removes all the sources inside the scene and sets it as a current one.
@@ -73,7 +77,8 @@ class OBS:
         else:
             self.create_scene(scene_name)
 
-        self.set_current_scene(scene_name)
+        if switch_scene:
+            self.set_current_scene(scene_name)
 
     def clear_all_scenes(self):
         """
@@ -94,7 +99,7 @@ class OBS:
             response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=item))
             if not response.status:  # if not deleted
                 raise Exception(
-                    f"E PYSERVER::OBS::clear_scene(): coudn't delete scene item, "
+                    f"E PYSERVER::OBS::clear_scene(): "
                     f"datain: {response.datain}, dataout: {response.dataout}")
 
     def set_current_scene(self, scene_name):
@@ -115,25 +120,26 @@ class OBS:
         the media when it has finished. Fires Exception when couldn't add or mute a source.
         """
         filename = os.path.basename(path)
-        scene_name = self.obsws_get_current_scene_name()
+        self.setup_scene(scene_name=MEDIA_SCENE_NAME, switch_scene=False)
+        # scene_name = self.obsws_get_current_scene_name()
 
         response = self.client.call(obs.requests.CreateSource(
             sourceName=filename,
             sourceKind='ffmpeg_source',
-            sceneName=scene_name,
+            sceneName=MEDIA_SCENE_NAME,
             sourceSettings={'local_file': path}
         ))
 
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::run_media(): "
-                            f"coudn't add a media source, datain: {response.datain}, dataout: {response.dataout}")
+                            f"datain: {response.datain}, dataout: {response.dataout}")
 
         self.media_queue.append(filename)
 
         response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=True))
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::run_media(): "
-                            f"coudn't mute a source, datain: {response.datain}, dataout: {response.dataout}")
+                            f"datain: {response.datain}, dataout: {response.dataout}")
 
     def setup_ts_sound(self):
         """
@@ -149,7 +155,7 @@ class OBS:
             response = self.client.call(obs.requests.DeleteSceneItem(scene=current_scene, item=item))
             if not response.status:  # if not deleted
                 raise Exception(
-                    f"E PYSERVER::OBS::setup_ts_sound(): coudn't delete scene item, "
+                    f"E PYSERVER::OBS::setup_ts_sound(): "
                     f"datain: {response.datain}, dataout: {response.dataout}")
 
         response = self.client.call(obs.requests.CreateSource(
@@ -160,11 +166,24 @@ class OBS:
 
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::setup_ts_sound(): "
-                            f"coudn't add a media source, datain: {response.datain}, dataout: {response.dataout}")
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
+    def get_ts_sync_offset(self):
+        """
+        Retrieves teamspeak sound sync offset
+        :return:
+        """
+        response = self.client.call(obs.requests.GetSyncOffset(source=TS_INPUT_NAME))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::get_ts_sync_offset(): "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
+        return response.getOffset() // 1_000_000
 
     def set_ts_sync_offset(self, offset):
         """
-        Sets teamspeak audio ('ts_input' source) sync offset
+        Sets teamspeak sound ('ts_input' source) sync offset
         :return:
         """
         response = self.client.call(obs.requests.SetSyncOffset(
@@ -174,8 +193,32 @@ class OBS:
 
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::set_ts_sync_offset(): "
-                            f"coudn't set teamspeak sync offset, "
                             f"datain: {response.datain}, dataout: {response.dataout}")
+
+    def get_ts_volume_db(self):
+        """
+        Retrieves teamspeak sound volume (in decibels)
+        :return:
+        """
+        response = self.client.call(obs.requests.GetVolume(source=TS_INPUT_NAME, useDecibel=True))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::get_ts_volume_db(): "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
+        return response.getVolume()
+
+    def set_ts_volume_db(self, volume_db):
+        """
+        Sets teamspeak sound volume (in decibels)
+        :param volume_db:
+        :return:
+        """
+        response = self.client.call(obs.requests.SetVolume(source=TS_INPUT_NAME, volume=volume_db, useDecibel=True))
+
+        if not response.status:
+            raise RuntimeError(f"E PYSERVER::OBS::set_ts_volume_db(): "
+                               f"datain: {response.datain}, dataout: {response.dataout}")
 
     def set_stream_settings(self, server, key, type="rtmp_custom"):
         """
@@ -190,8 +233,7 @@ class OBS:
         response = self.client.call(obs.requests.SetStreamSettings(type=type, settings=settings_, save=True))
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::set_stream_settings(): "
-                            f"coudn't set stream settings, lang: {self.lang}, "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+                            f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
 
     def start_streaming(self):
         """
@@ -200,8 +242,7 @@ class OBS:
         response = self.client.call(obs.requests.StartStreaming())
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::start_streaming(): "
-                            f"coudn't start streaming, lang: {self.lang}, "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+                            f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
 
     def stop_streaming(self):
         """
@@ -210,8 +251,7 @@ class OBS:
         response = self.client.call(obs.requests.StopStreaming())
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::stop_streaming(): "
-                            f"coudn't stop streaming, lang: {self.lang}, "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+                            f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
 
     def on_event(self, message):
         if message.name == 'MediaEnded':
@@ -230,14 +270,14 @@ class OBS:
                 response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=source_name))
                 if not response.status:
                     raise Exception(
-                        f"E PYSERVER::OBS::on_media_ended(): coudn't delete scene item, "
+                        f"E PYSERVER::OBS::on_media_ended(): "
                         f"datain: {response.datain}, dataout: {response.dataout}")
                 self.media_queue.remove(source_name)
 
                 response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=False))
                 if not response.status:
                     raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
-                                    f"coudn't unmute a source, datain: {response.datain}, dataout: {response.dataout}")
+                                    f"datain: {response.datain}, dataout: {response.dataout}")
 
         self.callback_queue.append(callback)
 

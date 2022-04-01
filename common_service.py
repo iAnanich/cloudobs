@@ -22,6 +22,7 @@ API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
 API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
 API_TS_OFFSET = os.getenv('API_TS_OFFSET')
+API_TS_VOLUME = os.getenv('API_TS_VOLUME')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -231,11 +232,76 @@ def set_ts_offset():
         response = requests.post(request_)
 
         if response.status_code != 200:
-            msg_ = f"E PYSERVER::set_ts_offset(): couldn't set stream settings for {lang}, details: {response.text}"
+            msg_ = f"E PYSERVER::set_ts_offset(): couldn't set ts offset for {lang}, details: {response.text}"
             print(msg_)
             status.append_error(msg_)
 
     return status.to_http_status()
+
+
+@app.route(API_TS_OFFSET, methods=['GET'])
+def get_ts_offset():
+    """
+    Retrieves information about teamspeak sound offset
+    :return: {"lang": offset, ...} (note, offset in milliseconds)
+    """
+    data = {}
+    for lang in instance_service_addrs:
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET}"
+        response = requests.get(request_)
+
+        data_ = json.loads(response.text)
+        for lang_, offset in data_.items():
+            data[lang_] = offset
+
+    return json.dumps(data), 200
+
+
+@app.route(API_TS_VOLUME, methods=['POST'])
+def set_ts_volume():
+    """
+    Query parameters:
+    volume_settings: json dictionary,
+    e.g. {"lang": 0.0, ...}
+    :return:
+    """
+    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = json.loads(volume_settings)
+
+    status = ExecutionStatus(status=True)
+    volume_settings = MultilangParams(volume_settings, langs=langs)
+
+    # broadcast request for all lang servers
+    for lang in volume_settings.list_langs():
+        params_ = {lang: volume_settings[lang]}
+        query_params = urlencode({'volume_settings': json.dumps(params_)})
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME}?{query_params}"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::set_ts_volume(): couldn't set ts volume for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
+@app.route(API_TS_VOLUME, methods=['GET'])
+def get_ts_volume():
+    """
+    Retrieves information about teamspeak sound offset
+    :return: {"lang": offset, ...} (note, offset in milliseconds)
+    """
+    data = {}
+    for lang in instance_service_addrs:
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME}"
+        response = requests.get(request_)
+
+        data_ = json.loads(response.text)
+        for lang_, volume in data_.items():
+            data[lang_] = volume
+
+    return json.dumps(data), 200
 
 
 if __name__ == '__main__':
