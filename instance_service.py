@@ -19,8 +19,10 @@ API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
 API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
 API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
-API_TS_OFFSET = os.getenv('API_TS_OFFSET')
-API_TS_VOLUME = os.getenv('API_TS_VOLUME')
+API_TS_OFFSET_ROUTE = os.getenv('API_TS_OFFSET_ROUTE')
+API_TS_VOLUME_ROUTE = os.getenv('API_TS_VOLUME_ROUTE')
+API_SIDECHAIN_ROUTE = os.getenv('API_SIDECHAIN_ROUTE')
+API_SOURCE_VOLUME_ROUTE = os.getenv('API_SOURCE_VOLUME_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -137,7 +139,7 @@ def stream_stop():
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET, methods=['POST'])
+@app.route(API_TS_OFFSET_ROUTE, methods=['POST'])
 def set_ts_offset():
     """
     Query parameters:
@@ -156,7 +158,7 @@ def set_ts_offset():
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET, methods=['GET'])
+@app.route(API_TS_OFFSET_ROUTE, methods=['GET'])
 def get_ts_offset():
     """
     Retrieves information about teamspeak sound offset
@@ -171,7 +173,7 @@ def get_ts_offset():
     return data, 200
 
 
-@app.route(API_TS_VOLUME, methods=['POST'])
+@app.route(API_TS_VOLUME_ROUTE, methods=['POST'])
 def set_ts_volume():
     """
     Query parameters:
@@ -191,11 +193,11 @@ def set_ts_volume():
     return status.to_http_status()
 
 
-@app.route(API_TS_VOLUME, methods=['GET'])
+@app.route(API_TS_VOLUME_ROUTE, methods=['GET'])
 def get_ts_volume():
     """
-    Retrieves information about teamspeak sound offset
-    :return: {"lang": offset, ...} (note, offset in milliseconds)
+    Retrieves information about teamspeak sound volume
+    :return: {"lang": volume, ...} (note, volume in decibels)
     """
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet")
@@ -204,6 +206,61 @@ def get_ts_volume():
     data = json.dumps(data)
 
     return data, 200
+
+
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=['POST'])
+def set_source_volume():
+    """
+    Query parameters:
+    volume_settings: json dictionary,
+    e.g. {"lang": 0.0, ...}
+    :return:
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = json.loads(volume_settings)
+    # TODO: validate `volume_settings`
+
+    status: ExecutionStatus = obs_server.set_source_volume_db(volume_settings=volume_settings)
+
+    return status.to_http_status()
+
+
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=['GET'])
+def get_source_volume():
+    """
+    Retrieves information about original source sound volume
+    :return: {"lang": volume, ...} (note, volume in decibels)
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    data = obs_server.get_source_volume_db()
+    data = json.dumps(data)
+
+    return data, 200
+
+
+@app.route(API_SIDECHAIN_ROUTE, methods=['POST'])
+def setup_sidechain():
+    """
+    Query parameters:
+    sidechain_settings: json dictionary,
+    e.g. {"lang": {'ratio': ..., 'release_time': ..., 'threshold': ...}, ...}
+    :return:
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+    sidechain_settings = request.args.get('sidechain_settings', None)
+    sidechain_settings = json.loads(sidechain_settings)
+    # TODO: validate `sidechain_settings`
+
+    status: ExecutionStatus = obs_server.setup_sidechain(sidechain_settings=sidechain_settings)
+
+    return status.to_http_status()
 
 
 if __name__ == '__main__':

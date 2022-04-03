@@ -6,6 +6,7 @@ ORIGINAL_STREAM_SOURCE_NAME = 'original_stream'
 MAIN_SCENE_NAME = 'main'
 MEDIA_SCENE_NAME = 'media'
 TS_INPUT_NAME = 'ts_input'
+COMPRESSOR_FILTER_NAME = 'sidechain'
 
 
 def create_event_handler(obs_instance):
@@ -219,6 +220,78 @@ class OBS:
         if not response.status:
             raise RuntimeError(f"E PYSERVER::OBS::set_ts_volume_db(): "
                                f"datain: {response.datain}, dataout: {response.dataout}")
+
+    def get_source_volume_db(self):
+        """
+        Retrieves original source sound volume (in decibels)
+        :return:
+        """
+        response = self.client.call(obs.requests.GetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, useDecibel=True))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::get_source_volume_db(): "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
+        return response.getVolume()
+
+    def set_source_volume_db(self, volume_db):
+        """
+        Sets original source sound volume (in decibels)
+        :param volume_db:
+        :return:
+        """
+        response = self.client.call(obs.requests.SetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, volume=volume_db, useDecibel=True))
+
+        if not response.status:
+            raise RuntimeError(f"E PYSERVER::OBS::set_source_volume_db(): "
+                               f"datain: {response.datain}, dataout: {response.dataout}")
+
+    def setup_sidechain(self, ratio=None, release_time=None, threshold=None):
+        """
+        [{'enabled': True,
+          'name': 'sidechain',
+          'settings': {'ratio': 15.0,
+           'release_time': 1000,
+           'sidechain_source': 'Mic/Aux',
+           'threshold': -29.2},
+          'type': 'compressor_filter'}]
+        """
+        response = self.client.call(obs.requests.GetSourceFilters(sourceName=ORIGINAL_STREAM_SOURCE_NAME))
+
+        if not response.status:
+            raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
+                               f"datain: {response.datain}, dataout: {response.dataout}")
+
+        filters = response.getFilters()  # [... {'enabled': ..., 'name': ..., 'settings': ..., 'type': ...} ...]
+
+        sourceName = ORIGINAL_STREAM_SOURCE_NAME
+        filterName = COMPRESSOR_FILTER_NAME
+        filterType = 'compressor_filter'
+        filterSettings = {
+            'sidechain_source': TS_INPUT_NAME,
+        }
+        if ratio is not None:
+            filterSettings['ratio'] = ratio
+        if release_time is not None:
+            filterSettings['release_time'] = release_time
+        if threshold is not None:
+            filterSettings['threshold'] = threshold
+
+        if all([f['name'] != COMPRESSOR_FILTER_NAME for f in filters]):  # if no compressor input added before
+            response = self.client.call(obs.requests.AddFilterToSource(
+                sourceName=sourceName, filterName=filterName, filterType=filterType, filterSettings=filterSettings,
+            ))
+            if not response.status:
+                raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
+                                   f"datain: {response.datain}, dataout: {response.dataout}")
+        else:  # if compressor was already added before
+            response = self.client.call(obs.requests.SetSourceFilterSettings(
+                sourceName=sourceName, filterName=filterName, filterSettings=filterSettings,
+            ))
+            if not response.status:
+                raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
+                                   f"datain: {response.datain}, dataout: {response.dataout}")
+
 
     def set_stream_settings(self, server, key, type="rtmp_custom"):
         """

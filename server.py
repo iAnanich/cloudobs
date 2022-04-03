@@ -115,7 +115,7 @@ class Server:
                 msg_ = f"E PYSERVER::Server::set_stream_settings(): couldn't play media, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
-                #return ExecutionStatus(status=False, message=msg_)
+                # return ExecutionStatus(status=False, message=msg_)
 
         return status
 
@@ -137,7 +137,7 @@ class Server:
                 msg_ = f"E PYSERVER::Server::get_ts_sync_offset(): couldn't retrieve sync offset, lang {lang}. Details: {ex}"
                 print(msg_)  # TODO: logging methods
                 data[lang] = "#"  # TODO: handle errors
-                #return ExecutionStatus(status=False, message=msg_)
+                # return ExecutionStatus(status=False, message=msg_)
         return data
 
     def set_ts_sync_offset(self, offset_settings):
@@ -164,7 +164,7 @@ class Server:
                 msg_ = f"E PYSERVER::Server::set_ts_sync_offset(): couldn't set sync offset, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
-                #return ExecutionStatus(status=False, message=msg_)
+                # return ExecutionStatus(status=False, message=msg_)
 
         return status
 
@@ -186,7 +186,7 @@ class Server:
                 msg_ = f"E PYSERVER::Server::get_ts_volume_db(): couldn't retrieve ts volume, lang {lang}. Details: {ex}"
                 print(msg_)  # TODO: logging methods
                 data[lang] = "#"  # TODO: handle errors
-                #return ExecutionStatus(status=False, message=msg_)
+                # return ExecutionStatus(status=False, message=msg_)
         return data
 
     def set_ts_volume_db(self, volume_settings):
@@ -213,9 +213,88 @@ class Server:
                 msg_ = f"E PYSERVER::Server::set_ts_volume_db(): couldn't set ts volume, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
-                #return ExecutionStatus(status=False, message=msg_)
+                # return ExecutionStatus(status=False, message=msg_)
 
         return status
+
+    def get_source_volume_db(self):
+        """
+        Retrieves original source sound volume (in decibels)
+        :return: {"lang": volume_db, ...}
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        data = {}
+
+        for lang, obs_ in self.obs_instances.items():
+            try:
+                volume = obs_.get_source_volume_db()
+                data[lang] = volume
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::get_source_volume_db(): couldn't retrieve original source volume, lang {lang}. Details: {ex}"
+                print(msg_)  # TODO: logging methods
+                data[lang] = "#"  # TODO: handle errors
+                # return ExecutionStatus(status=False, message=msg_)
+        return data
+
+    def set_source_volume_db(self, volume_settings):
+        """
+        :param volume_settings: volume dictionary,
+        e.g. {"lang": 0.0, ...}
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, volume in volume_settings.items():
+            if lang not in self.obs_instances:
+                msg_ = f"W PYSERVER::Server::set_source_volume_db(): no obs instanse found with lang {lang} specified"
+                print(msg_)
+                status.append_warning(msg_)
+                continue
+            obs_: obs.OBS = self.obs_instances[lang]
+            try:
+                obs_.set_source_volume_db(volume)
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::set_source_volume_db(): couldn't set original source volume, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                # return ExecutionStatus(status=False, message=msg_)
+
+        return status
+
+    def setup_sidechain(self, sidechain_settings):
+        """
+        :param sidechain_settings: sidechain settings dictionary,
+        e.g. {"lang": {'ratio': ..., 'release_time': ..., 'threshold': ...}, ...}
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, settings in sidechain_settings.items():
+            if lang not in self.obs_instances:
+                msg_ = f"W PYSERVER::Server::setup_sidechain(): no obs instanse found with lang {lang} specified"
+                print(msg_)
+                status.append_warning(msg_)
+                continue
+            obs_: obs.OBS = self.obs_instances[lang]
+            try:
+                ratio = settings['ratio'] if 'ratio' in settings else None
+                release_time = settings['release_time'] if 'release_time' in settings else None
+                threshold = settings['threshold'] if 'threshold' in settings else None
+
+                obs_.setup_sidechain(ratio=ratio, release_time=release_time, threshold=threshold)
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::setup_sidechain(): couldn't setup sidechain, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                # return ExecutionStatus(status=False, message=msg_)
 
     def start_streaming(self):
         """
@@ -233,7 +312,7 @@ class Server:
                 msg_ = f"E PYSERVER::Server::start_streaming(): couldn't play media, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
-                #return ExecutionStatus(status=False, message=msg_
+                # return ExecutionStatus(status=False, message=msg_
 
         return status
 
@@ -253,7 +332,7 @@ class Server:
                 msg_ = f"E PYSERVER::Server::stop_streaming(): couldn't play media, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
-                #return ExecutionStatus(status=False, message=msg_)
+                # return ExecutionStatus(status=False, message=msg_)
 
         return status
 

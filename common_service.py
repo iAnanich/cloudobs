@@ -21,8 +21,10 @@ API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
 API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
 API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
 API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
-API_TS_OFFSET = os.getenv('API_TS_OFFSET')
-API_TS_VOLUME = os.getenv('API_TS_VOLUME')
+API_TS_OFFSET_ROUTE = os.getenv('API_TS_OFFSET_ROUTE')
+API_TS_VOLUME_ROUTE = os.getenv('API_TS_VOLUME_ROUTE')
+API_SIDECHAIN_ROUTE = os.getenv('API_SIDECHAIN_ROUTE')
+API_SOURCE_VOLUME_ROUTE = os.getenv('API_SOURCE_VOLUME_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -210,7 +212,7 @@ def stream_stop():
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET, methods=['POST'])
+@app.route(API_TS_OFFSET_ROUTE, methods=['POST'])
 def set_ts_offset():
     """
     Query parameters:
@@ -228,7 +230,7 @@ def set_ts_offset():
     for lang in offset_settings.list_langs():
         params_ = {lang: offset_settings[lang]}
         query_params = urlencode({'offset_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET}?{query_params}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET_ROUTE}?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -239,7 +241,7 @@ def set_ts_offset():
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET, methods=['GET'])
+@app.route(API_TS_OFFSET_ROUTE, methods=['GET'])
 def get_ts_offset():
     """
     Retrieves information about teamspeak sound offset
@@ -247,7 +249,7 @@ def get_ts_offset():
     """
     data = {}
     for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET_ROUTE}"
         response = requests.get(request_)
 
         data_ = json.loads(response.text)
@@ -257,7 +259,7 @@ def get_ts_offset():
     return json.dumps(data), 200
 
 
-@app.route(API_TS_VOLUME, methods=['POST'])
+@app.route(API_TS_VOLUME_ROUTE, methods=['POST'])
 def set_ts_volume():
     """
     Query parameters:
@@ -275,7 +277,7 @@ def set_ts_volume():
     for lang in volume_settings.list_langs():
         params_ = {lang: volume_settings[lang]}
         query_params = urlencode({'volume_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME}?{query_params}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME_ROUTE}?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -286,15 +288,15 @@ def set_ts_volume():
     return status.to_http_status()
 
 
-@app.route(API_TS_VOLUME, methods=['GET'])
+@app.route(API_TS_VOLUME_ROUTE, methods=['GET'])
 def get_ts_volume():
     """
-    Retrieves information about teamspeak sound offset
-    :return: {"lang": offset, ...} (note, offset in milliseconds)
+    Retrieves information about teamspeak sound volume
+    :return: {"lang": offset, ...} (note, volume in decibels)
     """
     data = {}
     for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME}"
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME_ROUTE}"
         response = requests.get(request_)
 
         data_ = json.loads(response.text)
@@ -304,11 +306,87 @@ def get_ts_volume():
     return json.dumps(data), 200
 
 
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=['POST'])
+def set_source_volume():
+    """
+    Query parameters:
+    volume_settings: json dictionary,
+    e.g. {"lang": 0.0, ...}
+    :return:
+    """
+    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = json.loads(volume_settings)
+
+    status = ExecutionStatus(status=True)
+    volume_settings = MultilangParams(volume_settings, langs=langs)
+
+    # broadcast request for all lang servers
+    for lang in volume_settings.list_langs():
+        params_ = {lang: volume_settings[lang]}
+        query_params = urlencode({'volume_settings': json.dumps(params_)})
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_SOURCE_VOLUME_ROUTE}?{query_params}"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::set_source_volume(): couldn't set original source volume for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=['GET'])
+def get_source_volume():
+    """
+    Retrieves information about original source volume
+    :return: {"lang": volume, ...} (note, volume in decibels)
+    """
+    data = {}
+    for lang in instance_service_addrs:
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_SOURCE_VOLUME_ROUTE}"
+        response = requests.get(request_)
+
+        data_ = json.loads(response.text)
+        for lang_, volume in data_.items():
+            data[lang_] = volume
+
+    return json.dumps(data), 200
+
+
+@app.route(API_SIDECHAIN_ROUTE, methods=['POST'])
+def setup_sidechain():
+    """
+    Query parameters:
+    sidechain_settings: json dictionary,
+    e.g. {"lang": {'ratio': ..., 'release_time': ..., 'threshold': ...}, ...}
+    :return:
+    """
+    sidechain_settings = request.args.get('sidechain_settings', None)
+    sidechain_settings = json.loads(sidechain_settings)
+
+    status = ExecutionStatus(status=True)
+    sidechain_settings = MultilangParams(sidechain_settings, langs=langs)
+
+    # broadcast request for all lang servers
+    for lang in sidechain_settings.list_langs():
+        params_ = {lang: sidechain_settings[lang]}
+        query_params = urlencode({'sidechain_settings': json.dumps(params_)})
+        request_ = f"{instance_service_addrs[lang]['addr']}{API_SIDECHAIN_ROUTE}?{query_params}"
+        response = requests.post(request_)
+
+        if response.status_code != 200:
+            msg_ = f"E PYSERVER::setup_sidechain(): couldn't setup sidechain for {lang}, details: {response.text}"
+            print(msg_)
+            status.append_error(msg_)
+
+    return status.to_http_status()
+
+
 if __name__ == '__main__':
     app.run('0.0.0.0', 5000)
 
 # ==================================== FOR TESTING
-# client = obsws.obsws("localhost", 4441)
+# client = obsws.obsws("localhost", 4445)
 # # client.register(on_event)
 # client.connect()
 #
