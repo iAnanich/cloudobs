@@ -295,6 +295,7 @@ class Server:
                 print(msg_)
                 status.append_error(msg_)
                 # return ExecutionStatus(status=False, message=msg_)
+        return status
 
     def start_streaming(self):
         """
