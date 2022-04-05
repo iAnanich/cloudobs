@@ -57,7 +57,7 @@ def cleanup():
     global obs_server
 
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     if obs_server is not None:
         obs_server.cleanup()
@@ -77,7 +77,7 @@ def media_play():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     name = request.args.get('name', None)
     use_file_num = request.args.get('use_file_num', '0')
@@ -101,7 +101,7 @@ def set_stream_settings():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     stream_settings = request.args.get('stream_settings', None)
     stream_settings = json.loads(stream_settings)
@@ -118,7 +118,7 @@ def stream_start():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     status: ExecutionStatus = obs_server.start_streaming()
 
@@ -132,7 +132,7 @@ def stream_stop():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     status: ExecutionStatus = obs_server.stop_streaming()
 
@@ -148,7 +148,7 @@ def set_ts_offset():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     offset_settings = request.args.get('offset_settings', None)
     offset_settings = json.loads(offset_settings)
@@ -165,7 +165,7 @@ def get_ts_offset():
     :return: {"lang": offset, ...} (note, offset in milliseconds)
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     data = obs_server.get_ts_volume_db()
     data = json.dumps(data)
@@ -182,7 +182,7 @@ def set_ts_volume():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     volume_settings = request.args.get('volume_settings', None)
     volume_settings = json.loads(volume_settings)
@@ -200,7 +200,7 @@ def get_ts_volume():
     :return: {"lang": volume, ...} (note, volume in decibels)
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     data = obs_server.get_ts_sync_offset()
     data = json.dumps(data)
@@ -217,7 +217,7 @@ def set_source_volume():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     volume_settings = request.args.get('volume_settings', None)
     volume_settings = json.loads(volume_settings)
@@ -235,7 +235,7 @@ def get_source_volume():
     :return: {"lang": volume, ...} (note, volume in decibels)
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     data = obs_server.get_source_volume_db()
     data = json.dumps(data)
@@ -252,7 +252,7 @@ def setup_sidechain():
     :return:
     """
     if obs_server is None:
-        return ExecutionStatus(status=False, message="The server was not initialized yet")
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
     sidechain_settings = request.args.get('sidechain_settings', None)
     sidechain_settings = json.loads(sidechain_settings)

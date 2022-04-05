@@ -104,7 +104,7 @@ class Server:
 
         for lang, settings_ in stream_settings.items():
             if lang not in self.obs_instances:
-                msg_ = f"W PYSERVER::Server::set_stream_settings(): no obs instanse found with lang {lang} specified"
+                msg_ = f"W PYSERVER::Server::set_stream_settings(): no obs instance found with lang {lang} specified"
                 print(msg_)
                 status.append_warning(msg_)
                 continue
@@ -153,7 +153,7 @@ class Server:
 
         for lang, offset in offset_settings.items():
             if lang not in self.obs_instances:
-                msg_ = f"W PYSERVER::Server::set_ts_sync_offset(): no obs instanse found with lang {lang} specified"
+                msg_ = f"W PYSERVER::Server::set_ts_sync_offset(): no obs instance found with lang {lang} specified"
                 print(msg_)
                 status.append_warning(msg_)
                 continue
@@ -202,7 +202,7 @@ class Server:
 
         for lang, volume in volume_settings.items():
             if lang not in self.obs_instances:
-                msg_ = f"W PYSERVER::Server::set_ts_volume_db(): no obs instanse found with lang {lang} specified"
+                msg_ = f"W PYSERVER::Server::set_ts_volume_db(): no obs instance found with lang {lang} specified"
                 print(msg_)
                 status.append_warning(msg_)
                 continue
@@ -251,7 +251,7 @@ class Server:
 
         for lang, volume in volume_settings.items():
             if lang not in self.obs_instances:
-                msg_ = f"W PYSERVER::Server::set_source_volume_db(): no obs instanse found with lang {lang} specified"
+                msg_ = f"W PYSERVER::Server::set_source_volume_db(): no obs instance found with lang {lang} specified"
                 print(msg_)
                 status.append_warning(msg_)
                 continue
@@ -279,7 +279,7 @@ class Server:
 
         for lang, settings in sidechain_settings.items():
             if lang not in self.obs_instances:
-                msg_ = f"W PYSERVER::Server::setup_sidechain(): no obs instanse found with lang {lang} specified"
+                msg_ = f"W PYSERVER::Server::setup_sidechain(): no obs instance found with lang {lang} specified"
                 print(msg_)
                 status.append_warning(msg_)
                 continue
