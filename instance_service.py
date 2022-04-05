@@ -202,7 +202,7 @@ def get_ts_volume():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    data = obs_server.get_ts_sync_offset()
+    data = obs_server.get_ts_volume_db()
     data = json.dumps(data)
 
     return data, 200
