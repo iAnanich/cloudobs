@@ -44,6 +44,7 @@ class ServiceAddrStorage:
     def items(self):
         return self.dct.items()
 
+
 class MultilangParams:
     def __init__(self, params_dict, langs=None):
         self.params_dict = params_dict
@@ -70,7 +71,6 @@ class MultilangParams:
         if self.all_langs:
             return self.langs
         return list(self.params_dict.keys())
-
 
 
 class ExecutionStatus:

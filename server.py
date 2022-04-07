@@ -3,7 +3,20 @@ import obswebsocket as obsws
 import obs
 import glob
 import re
+import threading
+import time
 from util import ExecutionStatus
+
+
+def _update_server(server):
+    while True:
+        with server.lock:
+            try:
+                for lang, obs_ in server.obs_instances.items():
+                    obs_.update()
+            except BaseException as ex:
+                pass
+        time.sleep(1)
 
 
 class Server:
@@ -19,30 +32,36 @@ class Server:
         self.obs_clients = None
         self.is_initialized = False
 
+        self.lock = threading.Lock()
+        self.th = threading.Thread(target=_update_server, args=(self,))
+        self.th.start()
+
     def initialize(self):
         """
         establish connections, initialize obs controllers, setup scenes, create original media sources
         :return: True/False, error message
         """
-        status = self._establish_connections(verbose=True)
+        with self.lock:
+            status = self._establish_connections(verbose=True)
 
-        if not status:
-            self.drop_connections()
-            return status
+            if not status:
+                self.drop_connections()
+                return status
 
-        status = self._initialize_obs_controllers(verbose=True)
+            status = self._initialize_obs_controllers(verbose=True)
 
-        if not status:
-            self.drop_connections()
-            return status
+            if not status:
+                self.drop_connections()
+                return status
 
         self.is_initialized = True
         return status
 
     def cleanup(self):
-        self.stop_streaming()  # no need to check status
-        self._reset_scenes()
-        self.drop_connections()
+        with self.lock:
+            self.stop_streaming()  # no need to check status
+            self._reset_scenes()
+            self.drop_connections()
 
     def drop_connections(self):
         for lang, client in self.obs_clients.items():
@@ -67,28 +86,29 @@ class Server:
 
         status = ExecutionStatus(status=True)
 
-        for lang, obs_ in self.obs_instances.items():
-            if use_file_num:
-                files = glob.glob(os.path.join(self.base_media_path, lang, f'{file_num}*'))
-                if len(files) == 0:
-                    msg_ = f"W PYSERVER::Server::run_media(): no media found with number specified, lang {lang}"
+        with self.lock:
+            for lang, obs_ in self.obs_instances.items():
+                if use_file_num:
+                    files = glob.glob(os.path.join(self.base_media_path, lang, f'{file_num}*'))
+                    if len(files) == 0:
+                        msg_ = f"W PYSERVER::Server::run_media(): no media found with number specified, lang {lang}"
+                        print(msg_)
+                        status.append_warning(msg_)
+                        continue
+                    path = files[0]
+                else:
+                    path = os.path.join(self.base_media_path, lang, name)
+                    if not os.path.isfile(path):
+                        msg_ = f"W PYSERVER::Server::run_media(): no media found with name specified, lang {lang}"
+                        print(msg_)
+                        status.append_warning(msg_)
+                        continue
+                try:
+                    obs_.run_media(path)
+                except BaseException as ex:
+                    msg_ = f"E PYSERVER::Server::run_media(): couldn't play media, lang {lang}. Details: {ex}"
                     print(msg_)
-                    status.append_warning(msg_)
-                    continue
-                path = files[0]
-            else:
-                path = os.path.join(self.base_media_path, lang, name)
-                if not os.path.isfile(path):
-                    msg_ = f"W PYSERVER::Server::run_media(): no media found with name specified, lang {lang}"
-                    print(msg_)
-                    status.append_warning(msg_)
-                    continue
-            try:
-                obs_.run_media(path)
-            except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::run_media(): couldn't play media, lang {lang}. Details: {ex}"
-                print(msg_)
-                status.append_error(msg_)
+                    status.append_error(msg_)
         return status
 
     def set_stream_settings(self, stream_settings):

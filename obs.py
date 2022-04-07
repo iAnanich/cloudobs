@@ -137,7 +137,8 @@ class OBS:
 
         self.media_queue.append(filename)
 
-        response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=True))
+        response = self.client.call(obs.requests.SetCurrentScene(scene_name=MEDIA_SCENE_NAME))
+        # response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=True))
         if not response.status:
             raise Exception(f"E PYSERVER::OBS::run_media(): "
                             f"datain: {response.datain}, dataout: {response.dataout}")
@@ -240,7 +241,8 @@ class OBS:
         :param volume_db:
         :return:
         """
-        response = self.client.call(obs.requests.SetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, volume=volume_db, useDecibel=True))
+        response = self.client.call(
+            obs.requests.SetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, volume=volume_db, useDecibel=True))
 
         if not response.status:
             raise RuntimeError(f"E PYSERVER::OBS::set_source_volume_db(): "
@@ -292,7 +294,6 @@ class OBS:
                 raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
                                    f"datain: {response.datain}, dataout: {response.dataout}")
 
-
     def set_stream_settings(self, server, key, type="rtmp_custom"):
         """
         Sets the streaming settings of the server
@@ -337,20 +338,25 @@ class OBS:
         source_name = message.getSourceName()
 
         def callback():
-            if source_name in self.media_queue:
-                scene_name = self.obsws_get_current_scene_name()
-
-                response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=source_name))
-                if not response.status:
-                    raise Exception(
-                        f"E PYSERVER::OBS::on_media_ended(): "
-                        f"datain: {response.datain}, dataout: {response.dataout}")
-                self.media_queue.remove(source_name)
-
-                response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=False))
+            if source_name in self.media_queue and \
+                        self.obsws_get_current_scene_name() == MEDIA_SCENE_NAME:
+                response = self.client.call(obs.requests.SetCurrentScene(scene_name=MAIN_SCENE_NAME))
                 if not response.status:
                     raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
                                     f"datain: {response.datain}, dataout: {response.dataout}")
+
+
+                # response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=source_name))
+                # if not response.status:
+                #     raise Exception(
+                #         f"E PYSERVER::OBS::on_media_ended(): "
+                #         f"datain: {response.datain}, dataout: {response.dataout}")
+                # self.media_queue.remove(source_name)
+                #
+                # response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=False))
+                # if not response.status:
+                #     raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
+                #                     f"datain: {response.datain}, dataout: {response.dataout}")
 
         self.callback_queue.append(callback)
 
