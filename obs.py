@@ -26,11 +26,6 @@ class OBS:
 
         self.client.register(create_event_handler(self))
 
-    def update(self):
-        for callback in self.callback_queue:
-            callback()
-        self.callback_queue.clear()
-
     def set_original_media_source(self, scene_name, original_media_source):
         """
         Adds an original media source
@@ -328,8 +323,13 @@ class OBS:
                             f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
 
     def on_event(self, message):
-        if message.name == 'MediaEnded':
-            self.on_media_ended(message)
+        # we handle the error here for the reason of this function is called from another thread
+        # from obs-websocket-py library, and I am not sure of the exception will be handled properly there
+        try:
+            if message.name == 'MediaEnded':
+                self.on_media_ended(message)
+        except BaseException as ex:
+            print(f"E PYSERVER::OBS::on_event(): {ex}")
 
     def on_media_ended(self, message):
         """
@@ -337,28 +337,12 @@ class OBS:
         """
         source_name = message.getSourceName()
 
-        def callback():
-            if source_name in self.media_queue and \
-                        self.obsws_get_current_scene_name() == MEDIA_SCENE_NAME:
-                response = self.client.call(obs.requests.SetCurrentScene(scene_name=MAIN_SCENE_NAME))
-                if not response.status:
-                    raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
-                                    f"datain: {response.datain}, dataout: {response.dataout}")
-
-
-                # response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=source_name))
-                # if not response.status:
-                #     raise Exception(
-                #         f"E PYSERVER::OBS::on_media_ended(): "
-                #         f"datain: {response.datain}, dataout: {response.dataout}")
-                # self.media_queue.remove(source_name)
-                #
-                # response = self.client.call(obs.requests.SetMute(source=ORIGINAL_STREAM_SOURCE_NAME, mute=False))
-                # if not response.status:
-                #     raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
-                #                     f"datain: {response.datain}, dataout: {response.dataout}")
-
-        self.callback_queue.append(callback)
+        if source_name in self.media_queue and \
+                self.obsws_get_current_scene_name() == MEDIA_SCENE_NAME:
+            response = self.client.call(obs.requests.SetCurrentScene(scene_name=MAIN_SCENE_NAME))
+            if not response.status:
+                raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
+                                f"datain: {response.datain}, dataout: {response.dataout}")
 
     def obsws_get_current_scene_name(self):
         return self.client.call(obs.requests.GetCurrentScene()).getName()

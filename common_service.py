@@ -31,6 +31,43 @@ obs_server: server.Server = None
 instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address"}
 langs = []
 
+def broadcast(api_route, http_method, params: util.MultilangParams=None, param_name="params",
+              return_status=False, method_name="broadcast"):
+    requests_ = {}  # lang: request
+    responses_ = {}  # lang: response
+    # create requests for all langs
+    for lang in params.list_langs():
+        addr = instance_service_addrs.addr(lang)
+        request_ = f"{addr}{api_route}"
+        if params is not None:
+            params_json = json.dumps({lang: params[lang]})
+            query_params = urlencode({param_name: params_json})
+            request_ = request_ + "?" + query_params
+        requests_[lang] = request_
+
+    # send requests
+    # TODO: async
+    for lang, request_ in requests_.items():
+        if http_method == 'GET':
+            response_ = requests.get(request_)
+        elif http_method == 'POST':
+            response_ = requests.post(request_)
+        else:
+            raise
+        responses_[lang] = response_
+
+    # decide wether to return status of response
+    if return_status:
+        status: ExecutionStatus = ExecutionStatus(status=True)
+        for lang, response in responses_.items():
+            if response.status_code != 200:
+                msg_ = f"E PYSERVER::{method_name}(): {lang}, details: {response.text}"
+                print(msg_)
+                status.append_error(msg_)
+        return status
+    else:
+        return responses_
+
 
 @app.route(API_INIT_ROUTE, methods=['POST'])
 def init():
@@ -54,7 +91,7 @@ def init():
     # broadcast request for all servers
     global instance_service_addrs  # dict of `"lang": {"addr": "address", "init": True/False}
     global langs
-    langs = list(server_langs.keys())
+    langs = list(set(server_langs.keys()))
 
     for lang in server_langs:
         lang_info = server_langs[lang]
@@ -63,14 +100,15 @@ def init():
             "addr": lang_info["host_url"].strip('/'),
         }
         lang_info.pop("host_url")
-        # POST initialization for every instance service
-        # for now every obs instance should be run locally with the instance service
+        # initialization for every instance service
+        # for now every obs instance should be started locally with the instance service
         lang_info["obs_host"] = "localhost"
         lang_info = {lang: lang_info}
 
         query_params = urlencode({"server_langs": json.dumps(lang_info)})
 
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_INIT_ROUTE}?{query_params}"
+        addr = instance_service_addrs.addr(lang)
+        request_ = f"{addr}{API_INIT_ROUTE}?{query_params}"
         response = requests.post(request_)
 
         if response.status_code != 200:
@@ -88,11 +126,8 @@ def cleanup():
     """
     status = ExecutionStatus(status=True)
 
-    # broadcast request for all lang servers
-    for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_CLEANUP_ROUTE}"
-        response = requests.post(request_)
-
+    responses = broadcast(API_CLEANUP_ROUTE, 'POST')
+    for lang, response in responses.items():
         if response.status_code != 200:
             msg_ = f"E PYSERVER::cleanup(): couldn't cleanup server for {lang}, details: {response.text}"
             print(msg_)
@@ -105,30 +140,16 @@ def cleanup():
 def media_play():
     """
     Query parameters:
-    name: name of the video
-    search_by_num: "1"/"0" (default "0"), points if need to search a file by first `n` numbers in name
-    e.g.: 001_video_desc.mp4
+    params: json dictionary,
+    e.g. {"lang": {"name": "...", "search_by_num": "0/1"}, ...}
     :return:
     """
-    name = request.args.get('name', None)
-    use_file_num = request.args.get('use_file_num', '0')
+    params = request.args.get('params', None)
+    params = json.loads(params)
 
-    status: ExecutionStatus = util.validate_media_play_params(name, use_file_num)
-    if not status:
-        return status.to_http_status()
-
-    status = ExecutionStatus(status=True)
-
-    # broadcast request for all lang servers
-    for lang in instance_service_addrs:
-        query_params = urlencode({"name": name, "use_file_num": use_file_num})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_MEDIA_PLAY_ROUTE}?{query_params}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::media_play(): couldn't play media for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    params = MultilangParams(params, langs=langs)
+    status = broadcast(API_MEDIA_PLAY_ROUTE, 'POST', params=params, param_name="params",
+                       return_status=True, method_name='media_play')
 
     return status.to_http_status()
 
@@ -144,28 +165,9 @@ def set_stream_settings():
     stream_settings = request.args.get('stream_settings', None)
     stream_settings = json.loads(stream_settings)
 
-    status = ExecutionStatus(status=True)
-    for lang in stream_settings:
-        stream_settings_ = stream_settings[lang]
-        if 'key' not in stream_settings_ or 'server' not in stream_settings_:
-            return status.append_error("Please specify both `server` and `key` attributes")
-    if not status:
-        return status.to_http_status()
-
-    status = ExecutionStatus(status=True)
-    stream_settings = MultilangParams(stream_settings, langs=langs)
-
-    # broadcast request for all lang servers
-    for lang in stream_settings.list_langs():
-        params_ = {lang: stream_settings[lang]}
-        query_params = urlencode({'stream_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_SET_STREAM_SETTINGS_ROUTE}?{query_params}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::set_stream_settings(): couldn't set stream settings for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    params = MultilangParams(stream_settings, langs=langs)
+    status = broadcast(API_SET_STREAM_SETTINGS_ROUTE, 'POST', params=params, param_name="stream_settings",
+                       return_status=True, method_name='set_stream_settings')
 
     return status.to_http_status()
 
@@ -176,17 +178,8 @@ def stream_start():
     Starts streaming on all machines
     :return:
     """
-    status = ExecutionStatus(status=True)
-
-    # broadcast request for all lang servers
-    for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_START_ROUTE}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::stream_start(): couldn't start streaming for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    status = broadcast(API_STREAM_START_ROUTE, 'POST', params=None,
+                       return_status=True, method_name='stream_start')
 
     return status.to_http_status()
 
@@ -197,17 +190,8 @@ def stream_stop():
     Stops streaming on all machines
     :return:
     """
-    status = ExecutionStatus(status=True)
-
-    # broadcast request for all lang servers
-    for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_STREAM_STOP_ROUTE}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::stream_stop(): couldn't stop streaming for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    status = broadcast(API_STREAM_STOP_ROUTE, 'POST', params=None,
+                       return_status=True, method_name='stream_stop')
 
     return status.to_http_status()
 
@@ -223,20 +207,9 @@ def set_ts_offset():
     offset_settings = request.args.get('offset_settings', None)
     offset_settings = json.loads(offset_settings)
 
-    status = ExecutionStatus(status=True)
-    offset_settings = MultilangParams(offset_settings, langs=langs)
-
-    # broadcast request for all lang servers
-    for lang in offset_settings.list_langs():
-        params_ = {lang: offset_settings[lang]}
-        query_params = urlencode({'offset_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET_ROUTE}?{query_params}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::set_ts_offset(): couldn't set ts offset for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    params = MultilangParams(offset_settings, langs=langs)
+    status = broadcast(API_TS_OFFSET_ROUTE, 'POST', params=params, param_name="offset_settings",
+                       return_status=True, method_name='set_ts_offset')
 
     return status.to_http_status()
 
@@ -247,14 +220,15 @@ def get_ts_offset():
     Retrieves information about teamspeak sound offset
     :return: {"lang": offset, ...} (note, offset in milliseconds)
     """
+    responses = broadcast(API_TS_OFFSET_ROUTE, 'GET', params=None, return_status=False)
     data = {}
-    for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_OFFSET_ROUTE}"
-        response = requests.get(request_)
-
-        data_ = json.loads(response.text)
-        for lang_, offset in data_.items():
-            data[lang_] = offset
+    for lang, response in responses.items():
+        try:
+            data_ = json.loads(response.text)
+        except:
+            data_ = {lang: "#"}
+        for lang_, value in data_.items():
+            data[lang_] = value
 
     return json.dumps(data), 200
 
@@ -270,20 +244,9 @@ def set_ts_volume():
     volume_settings = request.args.get('volume_settings', None)
     volume_settings = json.loads(volume_settings)
 
-    status = ExecutionStatus(status=True)
-    volume_settings = MultilangParams(volume_settings, langs=langs)
-
-    # broadcast request for all lang servers
-    for lang in volume_settings.list_langs():
-        params_ = {lang: volume_settings[lang]}
-        query_params = urlencode({'volume_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME_ROUTE}?{query_params}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::set_ts_volume(): couldn't set ts volume for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    params = MultilangParams(volume_settings, langs=langs)
+    status = broadcast(API_TS_VOLUME_ROUTE, 'POST', params=params, param_name="volume_settings",
+                       return_status=True, method_name='set_ts_volume')
 
     return status.to_http_status()
 
@@ -294,14 +257,15 @@ def get_ts_volume():
     Retrieves information about teamspeak sound volume
     :return: {"lang": offset, ...} (note, volume in decibels)
     """
+    responses = broadcast(API_TS_VOLUME_ROUTE, 'GET', params=None, return_status=False)
     data = {}
-    for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_TS_VOLUME_ROUTE}"
-        response = requests.get(request_)
-
-        data_ = json.loads(response.text)
-        for lang_, volume in data_.items():
-            data[lang_] = volume
+    for lang, response in responses.items():
+        try:
+            data_ = json.loads(response.text)
+        except:
+            data_ = {lang: "#"}
+        for lang_, value in data_.items():
+            data[lang_] = value
 
     return json.dumps(data), 200
 
@@ -317,20 +281,9 @@ def set_source_volume():
     volume_settings = request.args.get('volume_settings', None)
     volume_settings = json.loads(volume_settings)
 
-    status = ExecutionStatus(status=True)
-    volume_settings = MultilangParams(volume_settings, langs=langs)
-
-    # broadcast request for all lang servers
-    for lang in volume_settings.list_langs():
-        params_ = {lang: volume_settings[lang]}
-        query_params = urlencode({'volume_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_SOURCE_VOLUME_ROUTE}?{query_params}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::set_source_volume(): couldn't set original source volume for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    params = MultilangParams(volume_settings, langs=langs)
+    status = broadcast(API_TS_VOLUME_ROUTE, 'POST', params=params, param_name="volume_settings",
+                       return_status=True, method_name='set_source_volume')
 
     return status.to_http_status()
 
@@ -341,14 +294,15 @@ def get_source_volume():
     Retrieves information about original source volume
     :return: {"lang": volume, ...} (note, volume in decibels)
     """
+    responses = broadcast(API_SOURCE_VOLUME_ROUTE, 'GET', params=None, return_status=False)
     data = {}
-    for lang in instance_service_addrs:
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_SOURCE_VOLUME_ROUTE}"
-        response = requests.get(request_)
-
-        data_ = json.loads(response.text)
-        for lang_, volume in data_.items():
-            data[lang_] = volume
+    for lang, response in responses.items():
+        try:
+            data_ = json.loads(response.text)
+        except:
+            data_ = {lang: "#"}
+        for lang_, value in data_.items():
+            data[lang_] = value
 
     return json.dumps(data), 200
 
@@ -364,20 +318,9 @@ def setup_sidechain():
     sidechain_settings = request.args.get('sidechain_settings', None)
     sidechain_settings = json.loads(sidechain_settings)
 
-    status = ExecutionStatus(status=True)
-    sidechain_settings = MultilangParams(sidechain_settings, langs=langs)
-
-    # broadcast request for all lang servers
-    for lang in sidechain_settings.list_langs():
-        params_ = {lang: sidechain_settings[lang]}
-        query_params = urlencode({'sidechain_settings': json.dumps(params_)})
-        request_ = f"{instance_service_addrs[lang]['addr']}{API_SIDECHAIN_ROUTE}?{query_params}"
-        response = requests.post(request_)
-
-        if response.status_code != 200:
-            msg_ = f"E PYSERVER::setup_sidechain(): couldn't setup sidechain for {lang}, details: {response.text}"
-            print(msg_)
-            status.append_error(msg_)
+    params = MultilangParams(sidechain_settings, langs=langs)
+    status = broadcast(API_SIDECHAIN_ROUTE, 'POST', params=params, param_name="sidechain_settings",
+                       return_status=True, method_name='setup_sidechain')
 
     return status.to_http_status()
 

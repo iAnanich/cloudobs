@@ -44,12 +44,15 @@ class ServiceAddrStorage:
     def items(self):
         return self.dct.items()
 
+    def addr(self, lang):
+        return self.dct[lang]['addr']
+
 
 class MultilangParams:
     def __init__(self, params_dict, langs=None):
         self.params_dict = params_dict
         self.langs = langs
-        self.all_langs = len(params_dict) == 1 and '__all__' in params_dict
+        self.all_langs = (len(params_dict) == 1) and ('__all__' in params_dict)
 
     def __getitem__(self, item):
         if self.all_langs:
@@ -109,3 +112,7 @@ class ExecutionStatus:
         code = 200 if self.__bool__() else 500
         msg = 'Ok' if code == 200 and not self.message else self.message
         return msg, code
+
+{"eng": {"host_url": "http://localhost:6000", "websocket_port": 4439, "password": "","original_media_url": "rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333"},
+ "rus": {"host_url": "http://135.181.206.93:6000","websocket_port": 4439,"password": "","original_media_url": "rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333"},
+ "rus": {"host_url": "http://135.181.252.126:6000","websocket_port": 4439, "password": "","original_media_url": "rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333"}}

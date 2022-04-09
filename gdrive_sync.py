@@ -11,7 +11,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 DRIVE_ID = os.getenv('GDRIVE_DRIVE_ID')
-LOCAL_DIR = os.getenv('GDRIVE_LOCAL_DIR')
+MEDIA_DIR = os.getenv('MEDIA_DIR')
+LANG = os.getenv('LANG')
 API_KEY = os.getenv('GDRIVE_API_KEY')
 SYNC_SECONDS = os.getenv('GDRIVE_SYNC_SECONDS')
 
@@ -63,5 +64,5 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
 if __name__ == '__main__':
     run_drive_sync(drive_id=DRIVE_ID,
                    sync_period_seconds=SYNC_SECONDS,
-                   local_dir=LOCAL_DIR,
+                   local_dir=os.path.join(MEDIA_DIR, LANG),
                    api_key=API_KEY)

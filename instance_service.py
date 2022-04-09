@@ -82,9 +82,10 @@ def media_play():
     name = request.args.get('name', None)
     use_file_num = request.args.get('use_file_num', '0')
 
-    status: ExecutionStatus = util.validate_media_play_params(name, use_file_num)
-    if not status:
-        return status.to_http_status()
+    if not name:
+        return ExecutionStatus(status=False, message="Please specify filename to play").to_http_status()
+    if use_file_num not in ('0', '1'):
+        return ExecutionStatus(status=False, message="`use_file_num` attribute should be in range of ('0', '1')")
 
     use_file_num = bool(int(use_file_num))
     status: ExecutionStatus = obs_server.run_media(name, use_file_num)
@@ -144,7 +145,7 @@ def set_ts_offset():
     """
     Query parameters:
     offset_settings: json dictionary,
-    e.g. {"lang": 4000, ...} (note, offset in milliseconds)
+    e.g. {"lang": offset, ...} (note, offset in milliseconds)
     :return:
     """
     if obs_server is None:
@@ -178,7 +179,7 @@ def set_ts_volume():
     """
     Query parameters:
     volume_settings: json dictionary,
-    e.g. {"lang": 0.0, ...}
+    e.g. {"lang": volume, ...}
     :return:
     """
     if obs_server is None:
@@ -213,7 +214,7 @@ def set_source_volume():
     """
     Query parameters:
     volume_settings: json dictionary,
-    e.g. {"lang": 0.0, ...}
+    e.g. {"lang": volume, ...}
     :return:
     """
     if obs_server is None:
