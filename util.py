@@ -1,4 +1,21 @@
 import re
+# import aiohttp
+# import asyncio
+# from grequests import async
+#
+# async def request(requests_, method):
+#     responses_ = {}
+#     async with aiohttp.ClientSession() as session:
+#         for lang, request_ in requests_.items():
+#             if method == 'GET':
+#                 async with session.get(request_) as resp:
+#                     response_ = await resp.read()
+#                     responses_[lang] = response_
+#             elif method == 'POST':
+#                 async with session.post(request_) as resp:
+#                     response_ = await resp.read()
+#                     responses_[lang] = response_
+
 
 
 def validate_init_params(server_langs):

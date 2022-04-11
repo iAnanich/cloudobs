@@ -3,6 +3,7 @@ import json
 import os
 import obswebsocket as obsws
 import obswebsocket.requests as obsrequests
+import grequests
 import requests as requests
 import server
 from flask import Flask
@@ -12,19 +13,19 @@ from urllib.parse import urlencode
 import util
 from util import ExecutionStatus, MultilangParams
 
-load_dotenv()
+from config import API_INIT_ROUTE
+from config import API_MEDIA_PLAY_ROUTE
+from config import API_SET_STREAM_SETTINGS_ROUTE
+from config import API_STREAM_START_ROUTE
+from config import API_STREAM_STOP_ROUTE
+from config import API_CLEANUP_ROUTE
+from config import API_TS_OFFSET_ROUTE
+from config import API_TS_VOLUME_ROUTE
+from config import API_SIDECHAIN_ROUTE
+from config import API_SOURCE_VOLUME_ROUTE
 
+load_dotenv()
 MEDIA_DIR = os.getenv('MEDIA_DIR')
-API_INIT_ROUTE = os.getenv('API_INIT_ROUTE')
-API_MEDIA_PLAY_ROUTE = os.getenv('API_MEDIA_PLAY_ROUTE')
-API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
-API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
-API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
-API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
-API_TS_OFFSET_ROUTE = os.getenv('API_TS_OFFSET_ROUTE')
-API_TS_VOLUME_ROUTE = os.getenv('API_TS_VOLUME_ROUTE')
-API_SIDECHAIN_ROUTE = os.getenv('API_SIDECHAIN_ROUTE')
-API_SOURCE_VOLUME_ROUTE = os.getenv('API_SOURCE_VOLUME_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -37,31 +38,32 @@ def broadcast(api_route, http_method, params: util.MultilangParams=None, param_n
     responses_ = {}  # lang: response
     # create requests for all langs
     for lang in params.list_langs():
-        addr = instance_service_addrs.addr(lang)
-        request_ = f"{addr}{api_route}"
-        if params is not None:
+        addr = instance_service_addrs.addr(lang)  # get server address
+        request_ = f"{addr}{api_route}"  # create requests
+        if params is not None:  # add query params if needed
             params_json = json.dumps({lang: params[lang]})
             query_params = urlencode({param_name: params_json})
             request_ = request_ + "?" + query_params
-        requests_[lang] = request_
+        requests_[lang] = request_  # dump request
 
-    # send requests
-    # TODO: async
+    # initialize grequests
     for lang, request_ in requests_.items():
         if http_method == 'GET':
-            response_ = requests.get(request_)
+            requests_[lang] = grequests.get(request_)
         elif http_method == 'POST':
-            response_ = requests.post(request_)
+            requests_[lang] = grequests.post(request_)
         else:
             raise
+    # send requests
+    for lang, response_ in zip(requests_.keys(), grequests.map(requests_.values())):
         responses_[lang] = response_
 
     # decide wether to return status of response
     if return_status:
         status: ExecutionStatus = ExecutionStatus(status=True)
-        for lang, response in responses_.items():
-            if response.status_code != 200:
-                msg_ = f"E PYSERVER::{method_name}(): {lang}, details: {response.text}"
+        for lang, response_ in responses_.items():
+            if response_.status_code != 200:
+                msg_ = f"E PYSERVER::{method_name}(): {lang}, details: {response_.text}"
                 print(msg_)
                 status.append_error(msg_)
         return status
@@ -92,8 +94,9 @@ def init():
     global instance_service_addrs  # dict of `"lang": {"addr": "address", "init": True/False}
     global langs
     langs = list(set(server_langs.keys()))
+    requests_ = []
 
-    for lang in server_langs:
+    for lang in langs:
         lang_info = server_langs[lang]
         # fill `instance_service_addrs`
         instance_service_addrs[lang] = {
@@ -109,8 +112,9 @@ def init():
 
         addr = instance_service_addrs.addr(lang)
         request_ = f"{addr}{API_INIT_ROUTE}?{query_params}"
-        response = requests.post(request_)
+        requests_.append(grequests.post(request_))
 
+    for lang, response in zip(langs, grequests.map(requests_)):
         if response.status_code != 200:
             msg_ = f"E PYSERVER::init(): couldn't initialize server for {lang}, details: {response.text}"
             print(msg_)

@@ -3,6 +3,7 @@ git+https://github.com/amukhsimov/obs-websocket-py.git
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+grequests
 
 ###### Requirements with Version Specifiers ######
 python-dotenv~=0.19.2

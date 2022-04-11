@@ -10,19 +10,20 @@ from dotenv import load_dotenv
 import util
 from util import ExecutionStatus
 
+from config import API_INIT_ROUTE
+from config import API_MEDIA_PLAY_ROUTE
+from config import API_SET_STREAM_SETTINGS_ROUTE
+from config import API_STREAM_START_ROUTE
+from config import API_STREAM_STOP_ROUTE
+from config import API_CLEANUP_ROUTE
+from config import API_TS_OFFSET_ROUTE
+from config import API_TS_VOLUME_ROUTE
+from config import API_SIDECHAIN_ROUTE
+from config import API_SOURCE_VOLUME_ROUTE
+
 load_dotenv()
 
 MEDIA_DIR = os.getenv('MEDIA_DIR')
-API_INIT_ROUTE = os.getenv('API_INIT_ROUTE')
-API_MEDIA_PLAY_ROUTE = os.getenv('API_MEDIA_PLAY_ROUTE')
-API_SET_STREAM_SETTINGS_ROUTE = os.getenv('API_SET_STREAM_SETTINGS_ROUTE')
-API_STREAM_START_ROUTE = os.getenv('API_STREAM_START_ROUTE')
-API_STREAM_STOP_ROUTE = os.getenv('API_STREAM_STOP_ROUTE')
-API_CLEANUP_ROUTE = os.getenv('API_CLEANUP_ROUTE')
-API_TS_OFFSET_ROUTE = os.getenv('API_TS_OFFSET_ROUTE')
-API_TS_VOLUME_ROUTE = os.getenv('API_TS_VOLUME_ROUTE')
-API_SIDECHAIN_ROUTE = os.getenv('API_SIDECHAIN_ROUTE')
-API_SOURCE_VOLUME_ROUTE = os.getenv('API_SOURCE_VOLUME_ROUTE')
 
 app = Flask(__name__)
 obs_server: server.Server = None
