@@ -49,6 +49,7 @@ def init():
     if obs_server is not None:
         try:
             obs_server.cleanup()
+            time.sleep(1)  # wait for cleanup
         except:
             pass
         del obs_server
