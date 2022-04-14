@@ -165,6 +165,44 @@ class OBS:
             raise Exception(f"E PYSERVER::OBS::setup_ts_sound(): "
                             f"datain: {response.datain}, dataout: {response.dataout}")
 
+    def setup_transition(self, transition_name="Cut", transition_settings=None):
+        """
+        :param transition_name: transition name, e.g. "Cut" or "Stinger"
+        :param transition_settings:
+        e.g.:
+        {'audio_fade_style': 1,
+         'audio_monitoring': 1,
+         'hw_decode': True,
+         'invert_matte': False,
+         'path': '/home/user/common/_Sting_RT.mp4',
+         'tp_type': 0,
+         'track_matte_enabled': False,
+         'transition_point': 3000}
+        :return:
+        """
+        if transition_name == "Stinger":
+            if "audio_fade_style" not in transition_settings:
+                transition_settings["audio_fade_style"] = 1
+            if "audio_monitoring" not in transition_settings:
+                transition_settings["audio_monitoring"] = 1
+            if "invert_matte" not in transition_settings:
+                transition_settings["invert_matte"] = False
+            if "tp_type" not in transition_settings:
+                transition_settings["tp_type"] = 0
+            if "track_matte_enabled" not in transition_settings:
+                transition_settings["track_matte_enabled"] = False
+            if "transition_point" not in transition_settings:
+                transition_settings["transition_point"] = 3000
+
+        response = self.client.call(obs.requests.SetTransitionSettings(
+            transitionName=transition_name,
+            transitionSettings=transition_settings,
+        ))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::setup_transition(): "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
     def get_ts_sync_offset(self):
         """
         Retrieves teamspeak sound sync offset

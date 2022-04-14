@@ -1,8 +1,6 @@
 import time
 import json
 import os
-import obswebsocket as obsws
-import obswebsocket.requests as obsrequests
 import grequests
 import requests as requests
 import server
@@ -23,6 +21,7 @@ from config import API_TS_OFFSET_ROUTE
 from config import API_TS_VOLUME_ROUTE
 from config import API_SIDECHAIN_ROUTE
 from config import API_SOURCE_VOLUME_ROUTE
+from config import API_TRANSITION_ROUTE
 
 load_dotenv()
 MEDIA_DIR = os.getenv('MEDIA_DIR')
@@ -329,6 +328,24 @@ def setup_sidechain():
     return status.to_http_status()
 
 
+@app.route(API_TRANSITION_ROUTE, methods=['POST'])
+def setup_transition():
+    """
+    Query parameters:
+    transition_settings: json dictionary,
+    e.g. {"lang": {'transition_name': ..., 'audio_fade_style': ..., 'path': ..., ...}, ...}
+    :return:
+    """
+    transition_settings = request.args.get('transition_settings', None)
+    transition_settings = json.loads(transition_settings)
+
+    params = MultilangParams(transition_settings, langs=langs)
+    status = broadcast(API_TRANSITION_ROUTE, 'POST', params=params, param_name="transition_settings",
+                       return_status=True, method_name='setup_transition')
+
+    return status.to_http_status()
+
+
 if __name__ == '__main__':
     app.run('0.0.0.0', 5000)
 
@@ -365,3 +382,15 @@ if __name__ == '__main__':
 #
 # client.disconnect()
 # obswebsocket.requests.GetSourceSettings
+"""
+l = client.call(obsws.requests.GetTransitionSettings('Stinger'))
+l.getTransitionSettings()
+{'audio_fade_style': 1,
+ 'audio_monitoring': 1,
+ 'hw_decode': True,
+ 'invert_matte': False,
+ 'path': '/home/amukhsimov/common/_Sting_RT.mp4',
+ 'tp_type': 0,
+ 'track_matte_enabled': False,
+ 'transition_point': 3000}
+"""

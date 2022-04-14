@@ -4,7 +4,12 @@ import obs
 import glob
 import re
 from util import ExecutionStatus
+from dotenv import load_dotenv
 
+
+load_dotenv()
+MEDIA_DIR = os.getenv('MEDIA_DIR')
+TRANSITION_DIR = os.path.join(MEDIA_DIR, 'transitions')
 
 class Server:
     def __init__(self, server_langs, base_media_path):
@@ -293,6 +298,38 @@ class Server:
                 obs_.setup_sidechain(ratio=ratio, release_time=release_time, threshold=threshold)
             except BaseException as ex:
                 msg_ = f"E PYSERVER::Server::setup_sidechain(): couldn't setup sidechain, lang {lang}. Details: {ex}"
+                print(msg_)
+                status.append_error(msg_)
+                # return ExecutionStatus(status=False, message=msg_)
+        return status
+
+    def setup_transition(self, transition_settings):
+        """
+        :param transition_settings: sidechain settings dictionary,
+        e.g. {"lang": {'transition_name': ..., 'audio_fade_style': ..., 'path': ..., ...}, ...}
+        :return:
+        """
+        if not self.is_initialized:
+            return ExecutionStatus(status=False, message="The server was not initialized yet")
+
+        status = ExecutionStatus(status=True)
+
+        for lang, settings in transition_settings.items():
+            if lang not in self.obs_instances:
+                msg_ = f"W PYSERVER::Server::setup_transition(): no obs instance found with lang {lang} specified"
+                print(msg_)
+                status.append_warning(msg_)
+                continue
+            obs_: obs.OBS = self.obs_instances[lang]
+            try:
+                transition_name = settings.pop("transition_name")
+                if "path" in settings:
+                    settings["path"] = os.path.join(TRANSITION_DIR, settings["path"])
+
+                obs_.setup_transition(transition_name=transition_name,
+                                      transition_settings=settings)
+            except BaseException as ex:
+                msg_ = f"E PYSERVER::Server::setup_transition(): couldn't setup transition, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
                 # return ExecutionStatus(status=False, message=msg_)

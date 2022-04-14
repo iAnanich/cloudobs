@@ -20,6 +20,7 @@ from config import API_TS_OFFSET_ROUTE
 from config import API_TS_VOLUME_ROUTE
 from config import API_SIDECHAIN_ROUTE
 from config import API_SOURCE_VOLUME_ROUTE
+from config import API_TRANSITION_ROUTE
 
 load_dotenv()
 
@@ -72,24 +73,17 @@ def cleanup():
 def media_play():
     """
     Query parameters:
-    name: name of the video
-    search_by_num: "1"/"0" (default "0"), points if need to search a file by first `n` numbers in name
-    e.g.: 001_video_desc.mp4
+    params: json dictionary,
+    e.g. {"lang": {"name": "...", "search_by_num": "0/1"}, ...}
     :return:
     """
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    name = request.args.get('name', None)
-    use_file_num = request.args.get('use_file_num', '0')
+    params = request.args.get('params', None)
+    params = json.loads(params)
 
-    if not name:
-        return ExecutionStatus(status=False, message="Please specify filename to play").to_http_status()
-    if use_file_num not in ('0', '1'):
-        return ExecutionStatus(status=False, message="`use_file_num` attribute should be in range of ('0', '1')")
-
-    use_file_num = bool(int(use_file_num))
-    status: ExecutionStatus = obs_server.run_media(name, use_file_num)
+    status: ExecutionStatus = obs_server.set_stream_settings(stream_settings=params)
 
     return status.to_http_status()
 
@@ -261,6 +255,26 @@ def setup_sidechain():
     # TODO: validate `sidechain_settings`
 
     status: ExecutionStatus = obs_server.setup_sidechain(sidechain_settings=sidechain_settings)
+
+    return status.to_http_status()
+
+
+@app.route(API_TRANSITION_ROUTE, methods=['POST'])
+def setup_transition():
+    """
+    Query parameters:
+    transition_settings: json dictionary,
+    e.g. {"lang": {'transition_name': ..., 'audio_fade_style': ..., 'path': ..., ...}, ...}
+    :return:
+    """
+    if obs_server is None:
+        return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
+
+    transition_settings = request.args.get('transition_settings', None)
+    transition_settings = json.loads(transition_settings)
+    # TODO: validate `transition_settings`
+
+    status: ExecutionStatus = obs_server.setup_transition(transition_settings=transition_settings)
 
     return status.to_http_status()
 

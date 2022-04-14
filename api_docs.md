@@ -8,7 +8,7 @@
         "host_url": "localhost", 
         "websocket_port": 1234, 
         "password": "qwerty123", 
-        "original_media_url": "srt://localhost"} 
+        "original_media_url": "srt://localhost"}
      }
      ```
  - Returns `("Ok", 200)` on success, otherwise `("error details", 500)`
@@ -16,13 +16,21 @@
  - Cleans up the server: stop streaming -> reset scenes -> close connections
 ### `POST /media/play`
  - Plays the video specified in parameters
+    Query parameters:
+    params: json dictionary,
+    e.g. {"lang": {"name": "...", "search_by_num": "0/1"}, ...}
  - Accepts the following parameters:
-   - `name` - name of the video
-   - `search_by_num` - `1`/`0` (defaults to `0`), if `1`
-     points the server needs to search a file by first `n` numbers in name,
-     for example if `name="001_test.mp4"`, the server will search for a file
-     which full name even does not match with `001_test.mp4`, but it's name starts with
-     `001`, it may be `001_test2.mp4`, `001.mp4`, etc.
+   - `params` - json dictionary, by-lang parameters, e.g.:
+    ```
+    {"lang": {"name": "...", "search_by_num": "0/1"}, ...}
+    ```
+   where `name` is the name of the video, `search_by_num` - 
+   points the server needs to search a file by first `n` numbers in name,
+   for example if `name="001_test.mp4"`, the server will search for a file
+   which full name even does not match with `001_test.mp4`, but it's name starts with
+   `001`, it may be `001_test2.mp4`, `001.mp4`, etc.
+ - Note: you may specify `params` for all languages,
+   passing `__all__` as a lang code, e.g.: `{"__all__": ...}`
  - Returns `("Ok", 200)` on success, otherwise `("error details", 500)`
 ### `POST /stream/settings`
  - Sets streaming destination settings
@@ -100,4 +108,29 @@
    If some are not provided, default values will be used.
  - Note: you may specify sidechain settings for all languages,
    passing `__all__` as a lang code, e.g.: `{"__all__": volume}`
+ - Returns `("Ok", 200)` on success, otherwise `("error details", 500)`
+### `POST /transition`
+ - Sets up transition
+ - Accepts the following parameters:
+   - `transition_settings` - json dictionary, by-lang parameters, e.g.:
+    ```
+    {"lang": {"transition_name": ..., "path": ...}, ...}
+    ```
+ - The following transition settings are supported:
+   ```
+   transition_name      - supported values are ("Cut", "Stinger"); required
+   audio_fade_style     - default 1; optional, used for "Stinger"
+   audio_monitoring     - default 1; optional, used for "Stinger"
+   hw_decode            - use hardware decode if available, default True; 
+                          optional, used for "Stinger"
+   invert_matte         - False; optional, used for "Stinger"
+   path                 - the name of video to use as transition 
+                          (e.g. "stinger_1.mp4"); required if "Stinger" specified
+   tp_type              - default 0; optional, used for "Stinger"
+   track_matte_enabled  - default False; optional, used for "Stinger"
+   transition_point     - transition point in ms; required, used for "Stinger"
+   ```
+   If some are not provided, default values will be used.
+ - Note: you may specify transition settings for all languages,
+   passing `__all__` as a lang code, e.g.: `{"__all__": ...}`
  - Returns `("Ok", 200)` on success, otherwise `("error details", 500)`
