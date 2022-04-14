@@ -44,9 +44,16 @@ def init():
     # if not status:
     #     return status.to_http_status()
 
-    cleanup()
-
     global obs_server
+
+    if obs_server is not None:
+        try:
+            obs_server.cleanup()
+        except:
+            pass
+        del obs_server
+        obs_server = None
+
     obs_server = server.Server(server_langs=server_langs)
     status: ExecutionStatus = obs_server.initialize()
 

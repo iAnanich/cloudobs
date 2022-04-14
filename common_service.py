@@ -115,7 +115,7 @@ def init():
         request_ = f"{addr}{API_INIT_ROUTE}?{query_params}"
         requests_.append(grequests.post(request_))
 
-    for lang, response in zip(langs, grequests.map(requests_)):
+    for lang, response in zip(langs, grequests.map(requests_, gtimeout=5)):
         if response.status_code != 200:
             msg_ = f"E PYSERVER::init(): couldn't initialize server for {lang}, details: {response.text}"
             print(msg_)
