@@ -24,7 +24,7 @@ from config import API_TRANSITION_ROUTE
 
 load_dotenv()
 
-MEDIA_DIR = os.getenv('MEDIA_DIR')
+# MEDIA_DIR = os.getenv('MEDIA_DIR')
 
 app = Flask(__name__)
 obs_server: server.Server = None
@@ -45,7 +45,7 @@ def init():
     #     return status.to_http_status()
 
     global obs_server
-    obs_server = server.Server(server_langs=server_langs, base_media_path=MEDIA_DIR)
+    obs_server = server.Server(server_langs=server_langs)
     status: ExecutionStatus = obs_server.initialize()
 
     return status.to_http_status()
@@ -83,7 +83,7 @@ def media_play():
     params = request.args.get('params', None)
     params = json.loads(params)
 
-    status: ExecutionStatus = obs_server.set_stream_settings(stream_settings=params)
+    status: ExecutionStatus = obs_server.run_media(params=params)
 
     return status.to_http_status()
 

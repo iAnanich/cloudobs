@@ -8,17 +8,17 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
-MEDIA_DIR = os.getenv('MEDIA_DIR')
-TRANSITION_DIR = os.path.join(MEDIA_DIR, 'transitions')
+BASE_MEDIA_DIR = os.getenv('MEDIA_DIR')
+MEDIA_DIR = os.path.join(BASE_MEDIA_DIR, 'media')
+TRANSITION_DIR = os.path.join(BASE_MEDIA_DIR, 'transitions')
 
 class Server:
-    def __init__(self, server_langs, base_media_path):
+    def __init__(self, server_langs):
         """
         :param server_langs: dict of "lang": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
         :return:
         """
         self.server_langs = server_langs
-        self.base_media_path = base_media_path
 
         self.obs_instances = None  # {..., "lang": obs.OBS(), ...}
         self.obs_clients = None
@@ -56,45 +56,56 @@ class Server:
             except:
                 pass
 
-    def run_media(self, name, use_file_num):
+    def run_media(self, params):
         if not self.is_initialized:
             return ExecutionStatus(status=False, message="The server was not initialized yet")
 
-        file_num = ""
-        if use_file_num:
-            # extract file number
-            file_num = re.search(r"^\d+", name)
-            if not file_num:
-                msg_ = f"W PYSERVER::Server::run_media(): no file matched the numeric pattern"
-                print(msg_)
-                return ExecutionStatus(status=False, message=msg_)
-            file_num = file_num.group()
-
         status = ExecutionStatus(status=True)
 
-        for lang, obs_ in self.obs_instances.items():
-            # get filename
+        for lang, params_ in params.items():
+            if lang not in self.obs_instances:
+                msg_ = f"W PYSERVER::Server::run_media(): no obs instance found with lang {lang} specified"
+                print(msg_)
+                status.append_warning(msg_)
+                continue
+            obs_: obs.OBS = self.obs_instances[lang]
+            use_file_num, name = params_["search_by_num"], params_["name"]
+
             if use_file_num:
-                files = glob.glob(os.path.join(self.base_media_path, lang, f'{file_num}*'))
+                # extract file number
+                file_num = re.search(r"^\d+", name)
+                if not file_num:  # if the pattern is incorrect (name doesn't start with numbers)
+                    msg_ = f"W PYSERVER::Server::run_media(): while `use_file_num` is set, " \
+                           f"`name` doesn't start with a number. lang {lang}, name {name}"
+                    print(msg_)
+                    status.append_warning(msg_)
+                    continue
+                file_num = file_num.group()
+
+                files = glob.glob(os.path.join(MEDIA_DIR, f'{file_num}*'))
                 if len(files) == 0:
-                    msg_ = f"W PYSERVER::Server::run_media(): no media found with number specified, lang {lang}"
+                    msg_ = f"W PYSERVER::Server::run_media(): no media found, " \
+                           f"lang {lang}, name {name}"
                     print(msg_)
                     status.append_warning(msg_)
                     continue
                 path = files[0]
             else:
-                path = os.path.join(self.base_media_path, lang, name)
+                path = os.path.join(MEDIA_DIR, name)
                 if not os.path.isfile(path):
-                    msg_ = f"W PYSERVER::Server::run_media(): no media found with name specified, lang {lang}"
+                    msg_ = f"W PYSERVER::Server::run_media(): no media found with name specified, " \
+                           f"lang {lang}, name {name}"
                     print(msg_)
                     status.append_warning(msg_)
                     continue
+
             try:
                 obs_.run_media(path)
             except BaseException as ex:
                 msg_ = f"E PYSERVER::Server::run_media(): couldn't play media, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
+
         return status
 
     def set_stream_settings(self, stream_settings):
@@ -118,7 +129,7 @@ class Server:
             try:
                 obs_.set_stream_settings(server=settings_["server"], key=settings_["key"])
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::set_stream_settings(): couldn't play media, lang {lang}. Details: {ex}"
+                msg_ = f"E PYSERVER::Server::set_stream_settings(): couldn't set stream settings, lang {lang}. Details: {ex}"
                 print(msg_)
                 status.append_error(msg_)
                 # return ExecutionStatus(status=False, message=msg_)
