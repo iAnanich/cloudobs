@@ -62,7 +62,9 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
 
 
 if __name__ == '__main__':
+    media_dir = os.path.join(MEDIA_DIR, LANG)
+    os.system(f"mkdir -p {media_dir}")
     run_drive_sync(drive_id=DRIVE_ID,
                    sync_period_seconds=SYNC_SECONDS,
-                   local_dir=os.path.join(MEDIA_DIR, LANG),
+                   local_dir=media_dir,
                    api_key=API_KEY)
