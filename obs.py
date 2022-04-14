@@ -203,6 +203,14 @@ class OBS:
             raise Exception(f"E PYSERVER::OBS::setup_transition(): "
                             f"datain: {response.datain}, dataout: {response.dataout}")
 
+        response = self.client.call(obs.requests.SetCurrentTransition(
+            transition_name=transition_name
+        ))
+
+        if not response.status:
+            raise Exception(f"E PYSERVER::OBS::setup_transition(): "
+                            f"datain: {response.datain}, dataout: {response.dataout}")
+
     def get_ts_sync_offset(self):
         """
         Retrieves teamspeak sound sync offset
