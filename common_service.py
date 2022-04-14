@@ -35,8 +35,10 @@ def broadcast(api_route, http_method, params: util.MultilangParams=None, param_n
               return_status=False, method_name="broadcast"):
     requests_ = {}  # lang: request
     responses_ = {}  # lang: response
+
+    langs_ = params.list_langs() if params is not None else langs
     # create requests for all langs
-    for lang in params.list_langs():
+    for lang in langs_:
         addr = instance_service_addrs.addr(lang)  # get server address
         request_ = f"{addr}{api_route}"  # create requests
         if params is not None:  # add query params if needed
