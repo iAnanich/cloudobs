@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 load_dotenv()
 BASE_MEDIA_DIR = os.getenv('MEDIA_DIR')
 MEDIA_DIR = os.path.join(BASE_MEDIA_DIR, 'media')
-TRANSITION_DIR = os.path.join(BASE_MEDIA_DIR, 'transitions')
+TRANSITION_DIR = os.path.join(BASE_MEDIA_DIR, 'media')
 
 class Server:
     def __init__(self, server_langs):
