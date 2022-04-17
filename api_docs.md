@@ -119,15 +119,8 @@
  - The following transition settings are supported:
    ```
    transition_name      - supported values are ("Cut", "Stinger"); required
-   audio_fade_style     - default 1; optional, used for "Stinger"
-   audio_monitoring     - default 1; optional, used for "Stinger"
-   hw_decode            - use hardware decode if available, default True; 
-                          optional, used for "Stinger"
-   invert_matte         - False; optional, used for "Stinger"
    path                 - the name of video to use as transition 
                           (e.g. "stinger_1.mp4"); required if "Stinger" specified
-   tp_type              - default 0; optional, used for "Stinger"
-   track_matte_enabled  - default False; optional, used for "Stinger"
    transition_point     - transition point in ms; required, used for "Stinger"
    ```
    If some are not provided, default values will be used.
