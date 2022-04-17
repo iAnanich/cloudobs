@@ -1,37 +1,51 @@
-import time
 import json
 import os
+from urllib.parse import urlencode
+
 import grequests
-import requests as requests
-import server
+from dotenv import load_dotenv
 from flask import Flask
 from flask import request
-from dotenv import load_dotenv
-from urllib.parse import urlencode
-import util
-from util import ExecutionStatus, MultilangParams
 
+import server
+import util
+from config import API_CLEANUP_ROUTE
 from config import API_INIT_ROUTE
 from config import API_MEDIA_PLAY_ROUTE
 from config import API_SET_STREAM_SETTINGS_ROUTE
-from config import API_STREAM_START_ROUTE
-from config import API_STREAM_STOP_ROUTE
-from config import API_CLEANUP_ROUTE
-from config import API_TS_OFFSET_ROUTE
-from config import API_TS_VOLUME_ROUTE
 from config import API_SIDECHAIN_ROUTE
 from config import API_SOURCE_VOLUME_ROUTE
+from config import API_STREAM_START_ROUTE
+from config import API_STREAM_STOP_ROUTE
 from config import API_TRANSITION_ROUTE
+from config import API_TS_OFFSET_ROUTE
+from config import API_TS_VOLUME_ROUTE
+from util import ExecutionStatus, MultilangParams
 
 load_dotenv()
 MEDIA_DIR = os.getenv('MEDIA_DIR')
+
+# Setup Sentry
+# ------------
+# if env var set - setup integration
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=1.0,
+    )
 
 app = Flask(__name__)
 obs_server: server.Server = None
 instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address"}
 langs = []
 
-def broadcast(api_route, http_method, params: util.MultilangParams=None, param_name="params",
+
+def broadcast(api_route, http_method, params: util.MultilangParams = None, param_name="params",
               return_status=False, method_name="broadcast"):
     requests_ = {}  # lang: request
     responses_ = {}  # lang: response
