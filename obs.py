@@ -1,17 +1,18 @@
 import os
-import time
-import obswebsocket as obs
-import obswebsocket.requests as obs_requests
 import threading
+import time
 
-ORIGINAL_STREAM_SOURCE_NAME = 'original_stream'
-TS_INPUT_NAME = 'ts_input'
-MEDIA_INPUT_NAME = 'media'
-TRANSITION_INPUT_NAME = 'transition'
+import obswebsocket as obs
+import obswebsocket.requests
 
-MAIN_SCENE_NAME = 'main'
-MEDIA_SCENE_NAME = 'media'
-COMPRESSOR_FILTER_NAME = 'sidechain'
+ORIGINAL_STREAM_SOURCE_NAME = "original_stream"
+TS_INPUT_NAME = "ts_input"
+MEDIA_INPUT_NAME = "media"
+TRANSITION_INPUT_NAME = "transition"
+
+MAIN_SCENE_NAME = "main"
+MEDIA_SCENE_NAME = "media"
+COMPRESSOR_FILTER_NAME = "sidechain"
 
 
 def create_event_handler(obs_instance):
@@ -20,9 +21,10 @@ def create_event_handler(obs_instance):
 
     return foo
 
+
 def obs_fire(type, cls, cls_foo, comment, datain, dataout):
-    raise Exception(f"{type} PYSERVER::{cls}::{cls_foo}(): {comment} "
-                    f"datain: {datain}, dataout: {dataout}")
+    raise Exception(f"{type} PYSERVER::{cls}::{cls_foo}(): {comment} " f"datain: {datain}, dataout: {dataout}")
+
 
 class CallbackThread(threading.Thread):
     def __init__(self, obs_):
@@ -96,40 +98,43 @@ class OBS:
         self.original_media_source = original_media_source
 
         source_settings = {
-            'input': original_media_source,
-            'is_local_file': False,
+            "input": original_media_source,
+            "is_local_file": False,
         }
         request = obs.requests.CreateSource(
             sourceName=ORIGINAL_STREAM_SOURCE_NAME,
-            sourceKind='ffmpeg_source',
+            sourceKind="ffmpeg_source",
             sceneName=scene_name,
-            sourceSettings=source_settings
+            sourceSettings=source_settings,
         )
         response = self.client.call(request)
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::add_original_media_source(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::add_original_media_source(): "
+                f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
-        request = obs.requests.SetAudioMonitorType(
-            sourceName=ORIGINAL_STREAM_SOURCE_NAME, monitorType='none'
-        )
+        request = obs.requests.SetAudioMonitorType(sourceName=ORIGINAL_STREAM_SOURCE_NAME, monitorType="none")
         response = self.client.call(request)
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::add_original_media_source(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::add_original_media_source(): "
+                f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
-    def setup_scene(self, scene_name='main', switch_scene=True):
+    def setup_scene(self, scene_name="main", switch_scene=True):
         """
         Creates (if not been created) a scene called `scene_name` and sets it as a current scene.
         If it has been created, removes all the sources inside the scene and sets it as a current one.
         """
         scenes = self.client.call(
-            obs.requests.GetSceneList()).getScenes()  # [... {'name': '...', 'sources': [...]}, ...]
+            obs.requests.GetSceneList()
+        ).getScenes()  # [... {'name': '...', 'sources': [...]}, ...]
 
         # if such scene has already been created
-        if any([x['name'] == scene_name for x in scenes]):
+        if any([x["name"] == scene_name for x in scenes]):
             self.clear_scene(scene_name)
         else:
             self.create_scene(scene_name)
@@ -143,7 +148,7 @@ class OBS:
         """
         scenes = self.obsws_get_scene_list()
         for scene_info in scenes:
-            scene_name = scene_info['name']
+            scene_name = scene_info["name"]
             self.clear_scene(scene_name)
 
     def clear_scene(self, scene_name):
@@ -151,9 +156,9 @@ class OBS:
         Removes all the items from a specified scene
         """
         items = self.obsws_get_scene_item_list(scene_name=scene_name)
-        items = [{'id': item['itemId'], 'name': item['sourceName']} for item in items]
+        items = [{"id": item["itemId"], "name": item["sourceName"]} for item in items]
         for item in items:
-            self.delete_scene_item(item_id=item['itemId'], source_name=item['sourceName'], scene_name=scene_name)
+            self.delete_scene_item(item_id=item["itemId"], source_name=item["sourceName"], scene_name=scene_name)
 
     def set_current_scene(self, scene_name):
         """
@@ -172,6 +177,7 @@ class OBS:
         Mutes original media, adds and runs the media located at `path`, and appends a listener which removes
         the media when it has finished. Fires Exception when couldn't add or mute a source.
         """
+
         def transition_end_foo():
             self.delete_source(source_name=TRANSITION_INPUT_NAME)
             self.set_source_mute(False)
@@ -180,7 +186,7 @@ class OBS:
 
         def media_end_foo():
             self.delete_source(source_name=MEDIA_INPUT_NAME)
-            if self.transition_name == 'Stinger':
+            if self.transition_name == "Stinger":
                 self._run_media(self.transition_path, TRANSITION_INPUT_NAME)
             self.media_cb_thread.append_callback(transition_end_foo, self.transition_point / 1000)
 
@@ -190,7 +196,9 @@ class OBS:
                 self.delete_source(source_name=TRANSITION_INPUT_NAME)
                 self._run_media(path, MEDIA_INPUT_NAME)
                 self.set_ts_mute(True)
-                duration = self.client.call(obs.requests.GetMediaDuration(sourceName=MEDIA_INPUT_NAME)).getMediaDuration()
+                duration = self.client.call(
+                    obs.requests.GetMediaDuration(sourceName=MEDIA_INPUT_NAME)
+                ).getMediaDuration()
                 self.media_cb_thread.append_callback(media_end_foo, duration / 1000)
             except Exception as ex:
                 self.delete_source(MEDIA_INPUT_NAME)
@@ -201,7 +209,7 @@ class OBS:
         self.media_cb_thread.clean_callbacks()
         self.delete_source(MEDIA_INPUT_NAME)
 
-        if self.transition_name == 'Stinger':
+        if self.transition_name == "Stinger":
             self._run_media(self.transition_path, TRANSITION_INPUT_NAME)
         self.set_source_mute(True)  # mute main source
         self.set_ts_mute(True)  # mute main source
@@ -214,26 +222,31 @@ class OBS:
         """
 
         current_scene = self.obsws_get_current_scene_name()
-        items = [{'id': item['itemId'], 'name': item['sourceName']}
-                 for item in self.obsws_get_scene_item_list(scene_name=current_scene)
-                 if item['sourceName'] == TS_INPUT_NAME]
+        items = [
+            {"id": item["itemId"], "name": item["sourceName"]}
+            for item in self.obsws_get_scene_item_list(scene_name=current_scene)
+            if item["sourceName"] == TS_INPUT_NAME
+        ]
 
         for item in items:
             response = self.client.call(obs.requests.DeleteSceneItem(scene=current_scene, item=item))
             if not response.status:  # if not deleted
                 raise Exception(
-                    f"E PYSERVER::OBS::setup_ts_sound(): "
-                    f"datain: {response.datain}, dataout: {response.dataout}")
+                    f"E PYSERVER::OBS::setup_ts_sound(): " f"datain: {response.datain}, dataout: {response.dataout}"
+                )
 
-        response = self.client.call(obs.requests.CreateSource(
-            sourceName=TS_INPUT_NAME,
-            sourceKind='pulse_output_capture',
-            sceneName=current_scene,
-        ))
+        response = self.client.call(
+            obs.requests.CreateSource(
+                sourceName=TS_INPUT_NAME,
+                sourceKind="pulse_output_capture",
+                sceneName=current_scene,
+            )
+        )
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::setup_ts_sound(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::setup_ts_sound(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def setup_transition(self, transition_name="Cut", transition_settings=None):
         """
@@ -248,11 +261,9 @@ class OBS:
             if "transition_point" not in transition_settings:
                 transition_settings["transition_point"] = 3000
             if "path" not in transition_settings:
-                raise Exception("E PYSERVER::OBS::setup_transition(): "
-                                "`path` is not specified")
+                raise Exception("E PYSERVER::OBS::setup_transition(): " "`path` is not specified")
             if not os.path.isfile(transition_settings["path"]):
-                raise Exception(f"W PYSERVER::OBS::setup_transition(): "
-                                f"no such file: {transition_settings['path']}")
+                raise Exception(f"W PYSERVER::OBS::setup_transition(): " f"no such file: {transition_settings['path']}")
             self.transition_path = transition_settings["path"]
             self.transition_point = int(transition_settings["transition_point"])
         else:
@@ -268,8 +279,9 @@ class OBS:
         response = self.client.call(obs.requests.GetSyncOffset(source=TS_INPUT_NAME))
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::get_ts_sync_offset(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::get_ts_sync_offset(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
         return response.getOffset() // 1_000_000
 
@@ -278,14 +290,17 @@ class OBS:
         Sets teamspeak sound ('ts_input' source) sync offset
         :return:
         """
-        response = self.client.call(obs.requests.SetSyncOffset(
-            source=TS_INPUT_NAME,
-            offset=offset * 1_000_000,  # convert to nanoseconds (refer to documentation)
-        ))
+        response = self.client.call(
+            obs.requests.SetSyncOffset(
+                source=TS_INPUT_NAME,
+                offset=offset * 1_000_000,  # convert to nanoseconds (refer to documentation)
+            )
+        )
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::set_ts_sync_offset(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::set_ts_sync_offset(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def get_ts_volume_db(self):
         """
@@ -295,8 +310,9 @@ class OBS:
         response = self.client.call(obs.requests.GetVolume(source=TS_INPUT_NAME, useDecibel=True))
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::get_ts_volume_db(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::get_ts_volume_db(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
         return response.getVolume()
 
@@ -309,8 +325,9 @@ class OBS:
         response = self.client.call(obs.requests.SetVolume(source=TS_INPUT_NAME, volume=volume_db, useDecibel=True))
 
         if not response.status:
-            raise RuntimeError(f"E PYSERVER::OBS::set_ts_volume_db(): "
-                               f"datain: {response.datain}, dataout: {response.dataout}")
+            raise RuntimeError(
+                f"E PYSERVER::OBS::set_ts_volume_db(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def get_source_volume_db(self):
         """
@@ -320,8 +337,9 @@ class OBS:
         response = self.client.call(obs.requests.GetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, useDecibel=True))
 
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::get_source_volume_db(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::get_source_volume_db(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
         return response.getVolume()
 
@@ -332,11 +350,13 @@ class OBS:
         :return:
         """
         response = self.client.call(
-            obs.requests.SetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, volume=volume_db, useDecibel=True))
+            obs.requests.SetVolume(source=ORIGINAL_STREAM_SOURCE_NAME, volume=volume_db, useDecibel=True)
+        )
 
         if not response.status:
-            raise RuntimeError(f"E PYSERVER::OBS::set_source_volume_db(): "
-                               f"datain: {response.datain}, dataout: {response.dataout}")
+            raise RuntimeError(
+                f"E PYSERVER::OBS::set_source_volume_db(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def setup_sidechain(self, ratio=None, release_time=None, threshold=None):
         """
@@ -351,53 +371,64 @@ class OBS:
         response = self.client.call(obs.requests.GetSourceFilters(sourceName=ORIGINAL_STREAM_SOURCE_NAME))
 
         if not response.status:
-            raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
-                               f"datain: {response.datain}, dataout: {response.dataout}")
+            raise RuntimeError(
+                f"E PYSERVER::OBS::setup_sidechain(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
         filters = response.getFilters()  # [... {'enabled': ..., 'name': ..., 'settings': ..., 'type': ...} ...]
 
         sourceName = ORIGINAL_STREAM_SOURCE_NAME
         filterName = COMPRESSOR_FILTER_NAME
-        filterType = 'compressor_filter'
+        filterType = "compressor_filter"
         filterSettings = {
-            'sidechain_source': TS_INPUT_NAME,
+            "sidechain_source": TS_INPUT_NAME,
         }
         if ratio is not None:
-            filterSettings['ratio'] = ratio
+            filterSettings["ratio"] = ratio
         if release_time is not None:
-            filterSettings['release_time'] = release_time
+            filterSettings["release_time"] = release_time
         if threshold is not None:
-            filterSettings['threshold'] = threshold
+            filterSettings["threshold"] = threshold
 
-        if all([f['name'] != COMPRESSOR_FILTER_NAME for f in filters]):  # if no compressor input added before
-            response = self.client.call(obs.requests.AddFilterToSource(
-                sourceName=sourceName, filterName=filterName, filterType=filterType, filterSettings=filterSettings,
-            ))
+        if all([f["name"] != COMPRESSOR_FILTER_NAME for f in filters]):  # if no compressor input added before
+            response = self.client.call(
+                obs.requests.AddFilterToSource(
+                    sourceName=sourceName,
+                    filterName=filterName,
+                    filterType=filterType,
+                    filterSettings=filterSettings,
+                )
+            )
             if not response.status:
-                raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
-                                   f"datain: {response.datain}, dataout: {response.dataout}")
+                raise RuntimeError(
+                    f"E PYSERVER::OBS::setup_sidechain(): " f"datain: {response.datain}, dataout: {response.dataout}"
+                )
         else:  # if compressor was already added before
-            response = self.client.call(obs.requests.SetSourceFilterSettings(
-                sourceName=sourceName, filterName=filterName, filterSettings=filterSettings,
-            ))
+            response = self.client.call(
+                obs.requests.SetSourceFilterSettings(
+                    sourceName=sourceName,
+                    filterName=filterName,
+                    filterSettings=filterSettings,
+                )
+            )
             if not response.status:
-                raise RuntimeError(f"E PYSERVER::OBS::setup_sidechain(): "
-                                   f"datain: {response.datain}, dataout: {response.dataout}")
+                raise RuntimeError(
+                    f"E PYSERVER::OBS::setup_sidechain(): " f"datain: {response.datain}, dataout: {response.dataout}"
+                )
 
     def set_stream_settings(self, server, key, type="rtmp_custom"):
         """
         Sets the streaming settings of the server
         """
         # TODO: validate server and key
-        settings_ = {
-            'server': server,
-            'key': key
-        }
+        settings_ = {"server": server, "key": key}
 
         response = self.client.call(obs.requests.SetStreamSettings(type=type, settings=settings_, save=True))
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::set_stream_settings(): "
-                            f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::set_stream_settings(): "
+                f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def start_streaming(self):
         """
@@ -405,8 +436,10 @@ class OBS:
         """
         response = self.client.call(obs.requests.StartStreaming())
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::start_streaming(): "
-                            f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::start_streaming(): "
+                f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def stop_streaming(self):
         """
@@ -414,8 +447,10 @@ class OBS:
         """
         response = self.client.call(obs.requests.StopStreaming())
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::stop_streaming(): "
-                            f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::stop_streaming(): "
+                f"lang: {self.lang}, datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def set_source_mute(self, mute):
         self.set_mute(ORIGINAL_STREAM_SOURCE_NAME, mute)
@@ -426,25 +461,26 @@ class OBS:
     def set_mute(self, source_name, mute):
         response = self.client.call(obs.requests.SetMute(source=source_name, mute=mute))
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::set_mute(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(f"E PYSERVER::OBS::set_mute(): " f"datain: {response.datain}, dataout: {response.dataout}")
 
     def _run_media(self, path, source_name):
         scene_name = self.obsws_get_current_scene_name()
         self.delete_source(source_name, scene_name)
 
-        response = self.client.call(obs.requests.CreateSource(
-            sourceName=source_name,
-            sourceKind='ffmpeg_source',
-            sceneName=MEDIA_SCENE_NAME,
-            sourceSettings={'local_file': path}
-        ))
+        response = self.client.call(
+            obs.requests.CreateSource(
+                sourceName=source_name,
+                sourceKind="ffmpeg_source",
+                sceneName=MEDIA_SCENE_NAME,
+                sourceSettings={"local_file": path},
+            )
+        )
         if not response.status:
-            obs_fire('E', 'OBS', '_run_media', 'CreateSource', response.datain, response.dataout)
+            obs_fire("E", "OBS", "_run_media", "CreateSource", response.datain, response.dataout)
 
         response = self.client.call(obs.requests.SetMediaTime(sourceName=source_name, timestamp=0))
         if not response.status:
-            obs_fire('E', 'OBS', '_run_media', 'SetMediaTime', response.datain, response.dataout)
+            obs_fire("E", "OBS", "_run_media", "SetMediaTime", response.datain, response.dataout)
 
     def delete_source(self, source_name, scene_name=None):
         """
@@ -454,7 +490,7 @@ class OBS:
             scene_name = self.obsws_get_current_scene_name()
         items = self.obsws_get_scene_item_list(scene_name=scene_name)
         for item in items:
-            item_id, source_name_ = item['itemId'], item['sourceName']
+            item_id, source_name_ = item["itemId"], item["sourceName"]
             if source_name_ == source_name:
                 self.delete_scene_item(item_id=item_id, source_name=source_name, scene_name=scene_name)
 
@@ -462,17 +498,18 @@ class OBS:
         """
         Removes an input given item_id, source_name and scene_name
         """
-        item = {'id': item_id, 'name': source_name}
+        item = {"id": item_id, "name": source_name}
         response = self.client.call(obs.requests.DeleteSceneItem(scene=scene_name, item=item))
         if not response.status:
-            raise Exception(f"E PYSERVER::OBS::delete_scene_item(): "
-                            f"datain: {response.datain}, dataout: {response.dataout}")
+            raise Exception(
+                f"E PYSERVER::OBS::delete_scene_item(): " f"datain: {response.datain}, dataout: {response.dataout}"
+            )
 
     def on_event(self, message):
         # we handle the error here for the reason of this function is called from another thread
         # from obs-websocket-py library, and I am not sure of the exception will be handled properly there
         try:
-            if message.name == 'MediaEnded':
+            if message.name == "MediaEnded":
                 self.on_media_ended(message)
         except BaseException as ex:
             print(f"E PYSERVER::OBS::on_event(): {ex}")
@@ -483,12 +520,12 @@ class OBS:
         """
         source_name = message.getSourceName()
 
-        if source_name in self.media_queue and \
-                self.obsws_get_current_scene_name() == MEDIA_SCENE_NAME:
+        if source_name in self.media_queue and self.obsws_get_current_scene_name() == MEDIA_SCENE_NAME:
             response = self.client.call(obs.requests.SetCurrentScene(scene_name=MAIN_SCENE_NAME))
             if not response.status:
-                raise Exception(f"E PYSERVER::OBS::on_media_ended(): "
-                                f"datain: {response.datain}, dataout: {response.dataout}")
+                raise Exception(
+                    f"E PYSERVER::OBS::on_media_ended(): " f"datain: {response.datain}, dataout: {response.dataout}"
+                )
 
     def obsws_get_current_scene_name(self):
         return self.client.call(obs.requests.GetCurrentScene()).getName()

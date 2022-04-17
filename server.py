@@ -1,21 +1,29 @@
-import os
-import obswebsocket as obsws
-import obs
 import glob
+import os
 import re
-from util import ExecutionStatus
+
+import obswebsocket as obsws
 from dotenv import load_dotenv
 
+import obs
+from util import ExecutionStatus
 
 load_dotenv()
-BASE_MEDIA_DIR = os.getenv('MEDIA_DIR')
-MEDIA_DIR = os.path.join(BASE_MEDIA_DIR, 'media')
-TRANSITION_DIR = os.path.join(BASE_MEDIA_DIR, 'media')
+BASE_MEDIA_DIR = os.getenv("MEDIA_DIR")
+MEDIA_DIR = os.path.join(BASE_MEDIA_DIR, "media")
+TRANSITION_DIR = os.path.join(BASE_MEDIA_DIR, "media")
+
 
 class Server:
     def __init__(self, server_langs):
         """
-        :param server_langs: dict of "lang": {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
+        :param server_langs: dict of
+            "lang": {
+                "obs_host": "localhost",
+                "websocket_port": 1234,
+                "password": "qwerty123",
+                "original_media_url": "srt://localhost"
+            }
         :return:
         """
         self.server_langs = server_langs
@@ -53,7 +61,7 @@ class Server:
         for lang, client in self.obs_clients.items():
             try:
                 client.disconnect()
-            except:
+            except Exception:  # FIXME
                 pass
 
     def run_media(self, params):
@@ -75,17 +83,18 @@ class Server:
                 # extract file number
                 file_num = re.search(r"^\d+", name)
                 if not file_num:  # if the pattern is incorrect (name doesn't start with numbers)
-                    msg_ = f"W PYSERVER::Server::run_media(): while `use_file_num` is set, " \
-                           f"`name` doesn't start with a number. lang {lang}, name {name}"
+                    msg_ = (
+                        f"W PYSERVER::Server::run_media(): while `use_file_num` is set, "
+                        f"`name` doesn't start with a number. lang {lang}, name {name}"
+                    )
                     print(msg_)
                     status.append_warning(msg_)
                     continue
                 file_num = file_num.group()
 
-                files = glob.glob(os.path.join(MEDIA_DIR, f'{file_num}*'))
+                files = glob.glob(os.path.join(MEDIA_DIR, f"{file_num}*"))
                 if len(files) == 0:
-                    msg_ = f"W PYSERVER::Server::run_media(): no media found, " \
-                           f"lang {lang}, name {name}"
+                    msg_ = f"W PYSERVER::Server::run_media(): no media found, " f"lang {lang}, name {name}"
                     print(msg_)
                     status.append_warning(msg_)
                     continue
@@ -93,8 +102,10 @@ class Server:
             else:
                 path = os.path.join(MEDIA_DIR, name)
                 if not os.path.isfile(path):
-                    msg_ = f"W PYSERVER::Server::run_media(): no media found with name specified, " \
-                           f"lang {lang}, name {name}"
+                    msg_ = (
+                        f"W PYSERVER::Server::run_media(): no media found with name specified, "
+                        f"lang {lang}, name {name}"
+                    )
                     print(msg_)
                     status.append_warning(msg_)
                     continue
@@ -129,7 +140,11 @@ class Server:
             try:
                 obs_.set_stream_settings(server=settings_["server"], key=settings_["key"])
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::set_stream_settings(): couldn't set stream settings, lang {lang}. Details: {ex}"
+                msg_ = (
+                    f"E PYSERVER::Server::set_stream_settings(): "
+                    f"couldn't set stream settings, lang {lang}. "
+                    f"Details: {ex}"
+                )
                 print(msg_)
                 status.append_error(msg_)
                 # return ExecutionStatus(status=False, message=msg_)
@@ -151,7 +166,11 @@ class Server:
                 offset = obs_.get_ts_sync_offset()
                 data[lang] = offset
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::get_ts_sync_offset(): couldn't retrieve sync offset, lang {lang}. Details: {ex}"
+                msg_ = (
+                    f"E PYSERVER::Server::get_ts_sync_offset(): "
+                    f"couldn't retrieve sync offset, lang {lang}. "
+                    f"Details: {ex}"
+                )
                 print(msg_)  # TODO: logging methods
                 data[lang] = "#"  # TODO: handle errors
                 # return ExecutionStatus(status=False, message=msg_)
@@ -200,7 +219,9 @@ class Server:
                 volume = obs_.get_ts_volume_db()
                 data[lang] = volume
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::get_ts_volume_db(): couldn't retrieve ts volume, lang {lang}. Details: {ex}"
+                msg_ = (
+                    f"E PYSERVER::Server::get_ts_volume_db(): couldn't retrieve ts volume, lang {lang}. Details: {ex}"
+                )
                 print(msg_)  # TODO: logging methods
                 data[lang] = "#"  # TODO: handle errors
                 # return ExecutionStatus(status=False, message=msg_)
@@ -249,7 +270,11 @@ class Server:
                 volume = obs_.get_source_volume_db()
                 data[lang] = volume
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::get_source_volume_db(): couldn't retrieve original source volume, lang {lang}. Details: {ex}"
+                msg_ = (
+                    f"E PYSERVER::Server::get_source_volume_db(): "
+                    f"couldn't retrieve original source volume, lang {lang}. "
+                    f"Details: {ex}"
+                )
                 print(msg_)  # TODO: logging methods
                 data[lang] = "#"  # TODO: handle errors
                 # return ExecutionStatus(status=False, message=msg_)
@@ -276,7 +301,11 @@ class Server:
             try:
                 obs_.set_source_volume_db(volume)
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::set_source_volume_db(): couldn't set original source volume, lang {lang}. Details: {ex}"
+                msg_ = (
+                    f"E PYSERVER::Server::set_source_volume_db(): "
+                    f"couldn't set original source volume, lang {lang}. "
+                    f"Details: {ex}"
+                )
                 print(msg_)
                 status.append_error(msg_)
                 # return ExecutionStatus(status=False, message=msg_)
@@ -302,9 +331,9 @@ class Server:
                 continue
             obs_: obs.OBS = self.obs_instances[lang]
             try:
-                ratio = settings['ratio'] if 'ratio' in settings else None
-                release_time = settings['release_time'] if 'release_time' in settings else None
-                threshold = settings['threshold'] if 'threshold' in settings else None
+                ratio = settings["ratio"] if "ratio" in settings else None
+                release_time = settings["release_time"] if "release_time" in settings else None
+                threshold = settings["threshold"] if "threshold" in settings else None
 
                 obs_.setup_sidechain(ratio=ratio, release_time=release_time, threshold=threshold)
             except BaseException as ex:
@@ -337,8 +366,7 @@ class Server:
                 if "path" in settings:
                     settings["path"] = os.path.join(TRANSITION_DIR, settings["path"])
 
-                obs_.setup_transition(transition_name=transition_name,
-                                      transition_settings=settings)
+                obs_.setup_transition(transition_name=transition_name, transition_settings=settings)
             except BaseException as ex:
                 msg_ = f"E PYSERVER::Server::setup_transition(): couldn't setup transition, lang {lang}. Details: {ex}"
                 print(msg_)
@@ -393,7 +421,7 @@ class Server:
         """
         # create obs ws clients
         self.obs_clients = {
-            lang: obsws.obsws(host=lang_info['obs_host'], port=int(lang_info['websocket_port']))
+            lang: obsws.obsws(host=lang_info["obs_host"], port=int(lang_info["websocket_port"]))
             for lang, lang_info in self.server_langs.items()
         }
 
@@ -405,10 +433,12 @@ class Server:
             try:
                 client.connect()
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::_establish_connections(): Couldn't connect to obs server. "
-                f"Lang '{lang}', "
-                f"host '{self.server_langs[lang]['obs_host']}', "
-                f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+                msg_ = (
+                    "E PYSERVER::Server::_establish_connections(): Couldn't connect to obs server. "
+                    f"Lang '{lang}', "
+                    f"host '{self.server_langs[lang]['obs_host']}', "
+                    f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+                )
                 if verbose:
                     print(msg_)
                 status.append_error(msg_)
@@ -420,10 +450,7 @@ class Server:
         Creates obs controller instances and set's up basic scenes
         """
         # create obs controller instances
-        self.obs_instances = {
-            lang: obs.OBS(lang, client)
-            for lang, client in self.obs_clients.items()
-        }
+        self.obs_instances = {lang: obs.OBS(lang, client) for lang, client in self.obs_clients.items()}
 
         status = ExecutionStatus(status=True)
 
@@ -432,14 +459,17 @@ class Server:
             try:
                 obs_.clear_all_scenes()
                 obs_.setup_scene(scene_name=obs.MAIN_SCENE_NAME)
-                obs_.set_original_media_source(scene_name=obs.MAIN_SCENE_NAME,
-                                               original_media_source=self.server_langs[lang]['original_media_url'])
+                obs_.set_original_media_source(
+                    scene_name=obs.MAIN_SCENE_NAME, original_media_source=self.server_langs[lang]["original_media_url"]
+                )
                 obs_.setup_ts_sound()
             except BaseException as ex:
-                msg_ = f"E PYSERVER::Server::_initialize_obs_controllers(): Couldn't initialize obs controller. "
-                f"Lang: '{lang}', "
-                f"host '{self.server_langs[lang]['obs_host']}', "
-                f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+                msg_ = (
+                    f"E PYSERVER::Server::_initialize_obs_controllers(): Couldn't initialize obs controller. "
+                    f"Lang: '{lang}', "
+                    f"host '{self.server_langs[lang]['obs_host']}', "
+                    f"port {self.server_langs[lang]['websocket_port']}. Details: {ex}"
+                )
                 if verbose:
                     print(msg_)
                 status.append_error(msg_)

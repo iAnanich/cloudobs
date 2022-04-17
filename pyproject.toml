@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "cloudobs"
+version = "0.1.0"
+description = ""
+authors = [
+    "amukhsimov <aka.mukhsimov@gmail.com>",
+    "Illia Ananich <illia.ananich@gmail.com>",
+]
+
+
+[tool.poetry.dependencies]
+python = "^3.8"
+# main dependencies
+Flask = "~=1.1.2"
+grequests = "^0.6.0"
+# Google API
+google-api-python-client = "^2.44.0"
+google-auth-httplib2 = "^0.1.0"
+google-auth-oauthlib = "^0.5.1"
+# Utils
+python-dotenv = "~=0.19.2"
+sentry-sdk = {extras = ["flask"], version = "^1.5.10"}
+
+
+[tool.poetry.dev-dependencies]
+black = "^22.3.0"
+flake8 = "^4.0.1"
+pre-commit = "^2.18.1"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+line-length = 120
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.venv
+  | venv
+  | build
+  | dist
+)/
+'''
