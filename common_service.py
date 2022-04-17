@@ -1,38 +1,44 @@
-import time
 import json
 import os
+from urllib.parse import urlencode
+
 import grequests
-import requests as requests
-import server
+from dotenv import load_dotenv
 from flask import Flask
 from flask import request
-from dotenv import load_dotenv
-from urllib.parse import urlencode
-import util
-from util import ExecutionStatus, MultilangParams
 
+import server
+import util
+from config import API_CLEANUP_ROUTE
 from config import API_INIT_ROUTE
 from config import API_MEDIA_PLAY_ROUTE
 from config import API_SET_STREAM_SETTINGS_ROUTE
-from config import API_STREAM_START_ROUTE
-from config import API_STREAM_STOP_ROUTE
-from config import API_CLEANUP_ROUTE
-from config import API_TS_OFFSET_ROUTE
-from config import API_TS_VOLUME_ROUTE
 from config import API_SIDECHAIN_ROUTE
 from config import API_SOURCE_VOLUME_ROUTE
+from config import API_STREAM_START_ROUTE
+from config import API_STREAM_STOP_ROUTE
 from config import API_TRANSITION_ROUTE
+from config import API_TS_OFFSET_ROUTE
+from config import API_TS_VOLUME_ROUTE
+from util import ExecutionStatus, MultilangParams
 
 load_dotenv()
-MEDIA_DIR = os.getenv('MEDIA_DIR')
+MEDIA_DIR = os.getenv("MEDIA_DIR")
 
 app = Flask(__name__)
 obs_server: server.Server = None
 instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address"}
 langs = []
 
-def broadcast(api_route, http_method, params: util.MultilangParams=None, param_name="params",
-              return_status=False, method_name="broadcast"):
+
+def broadcast(
+    api_route,
+    http_method,
+    params: util.MultilangParams = None,
+    param_name="params",
+    return_status=False,
+    method_name="broadcast",
+):
     requests_ = {}  # lang: request
     responses_ = {}  # lang: response
 
@@ -49,9 +55,9 @@ def broadcast(api_route, http_method, params: util.MultilangParams=None, param_n
 
     # initialize grequests
     for lang, request_ in requests_.items():
-        if http_method == 'GET':
+        if http_method == "GET":
             requests_[lang] = grequests.get(request_)
-        elif http_method == 'POST':
+        elif http_method == "POST":
             requests_[lang] = grequests.post(request_)
         else:
             raise
@@ -72,15 +78,29 @@ def broadcast(api_route, http_method, params: util.MultilangParams=None, param_n
         return responses_
 
 
-@app.route(API_INIT_ROUTE, methods=['POST'])
+@app.route(API_INIT_ROUTE, methods=["POST"])
 def init():
     """
     Query parameters:
-    server_langs: json, dict of "lang": {"host_url": "base_url", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}}
-    e.g.: {"rus": {"host_url": "http://255.255.255.255:5000", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}, "eng": ...}
+    server_langs: json,
+        dict of "lang": {
+            "host_url": "base_url",
+            "websocket_port": 1234,
+            "password": "qwerty123",
+            "original_media_url": "srt://localhost"
+        }
+    e.g.: {
+        "rus": {
+            "host_url": "http://255.255.255.255:5000",
+            "websocket_port": 1234,
+            "password": "qwerty123",
+            "original_media_url": "srt://localhost"
+        },
+        "eng": ...
+    }
     :return:
     """
-    server_langs = request.args.get('server_langs', '')
+    server_langs = request.args.get("server_langs", "")
     server_langs = json.loads(server_langs)
 
     # validate input parameters before broadcasting them to servers
@@ -101,7 +121,7 @@ def init():
         lang_info = server_langs[lang]
         # fill `instance_service_addrs`
         instance_service_addrs[lang] = {
-            "addr": lang_info["host_url"].strip('/'),
+            "addr": lang_info["host_url"].strip("/"),
         }
         lang_info.pop("host_url")
         # initialization for every instance service
@@ -124,14 +144,14 @@ def init():
     return status.to_http_status()
 
 
-@app.route(API_CLEANUP_ROUTE, methods=['POST'])
+@app.route(API_CLEANUP_ROUTE, methods=["POST"])
 def cleanup():
     """
     :return:
     """
     status = ExecutionStatus(status=True)
 
-    responses = broadcast(API_CLEANUP_ROUTE, 'POST')
+    responses = broadcast(API_CLEANUP_ROUTE, "POST")
     for lang, response in responses.items():
         if response.status_code != 200:
             msg_ = f"E PYSERVER::cleanup(): couldn't cleanup server for {lang}, details: {response.text}"
@@ -141,7 +161,7 @@ def cleanup():
     return status.to_http_status()
 
 
-@app.route(API_MEDIA_PLAY_ROUTE, methods=['POST'])
+@app.route(API_MEDIA_PLAY_ROUTE, methods=["POST"])
 def media_play():
     """
     Query parameters:
@@ -149,17 +169,18 @@ def media_play():
     e.g. {"lang": {"name": "...", "search_by_num": "0/1"}, ...}
     :return:
     """
-    params = request.args.get('params', None)
+    params = request.args.get("params", None)
     params = json.loads(params)
 
     params = MultilangParams(params, langs=langs)
-    status = broadcast(API_MEDIA_PLAY_ROUTE, 'POST', params=params, param_name="params",
-                       return_status=True, method_name='media_play')
+    status = broadcast(
+        API_MEDIA_PLAY_ROUTE, "POST", params=params, param_name="params", return_status=True, method_name="media_play"
+    )
 
     return status.to_http_status()
 
 
-@app.route(API_SET_STREAM_SETTINGS_ROUTE, methods=['POST'])
+@app.route(API_SET_STREAM_SETTINGS_ROUTE, methods=["POST"])
 def set_stream_settings():
     """
     Query parameters:
@@ -167,41 +188,45 @@ def set_stream_settings():
     e.g. {"lang": {"server": "rtmp://...", "key": "..."}, ...}
     :return:
     """
-    stream_settings = request.args.get('stream_settings', None)
+    stream_settings = request.args.get("stream_settings", None)
     stream_settings = json.loads(stream_settings)
 
     params = MultilangParams(stream_settings, langs=langs)
-    status = broadcast(API_SET_STREAM_SETTINGS_ROUTE, 'POST', params=params, param_name="stream_settings",
-                       return_status=True, method_name='set_stream_settings')
+    status = broadcast(
+        API_SET_STREAM_SETTINGS_ROUTE,
+        "POST",
+        params=params,
+        param_name="stream_settings",
+        return_status=True,
+        method_name="set_stream_settings",
+    )
 
     return status.to_http_status()
 
 
-@app.route(API_STREAM_START_ROUTE, methods=['POST'])
+@app.route(API_STREAM_START_ROUTE, methods=["POST"])
 def stream_start():
     """
     Starts streaming on all machines
     :return:
     """
-    status = broadcast(API_STREAM_START_ROUTE, 'POST', params=None,
-                       return_status=True, method_name='stream_start')
+    status = broadcast(API_STREAM_START_ROUTE, "POST", params=None, return_status=True, method_name="stream_start")
 
     return status.to_http_status()
 
 
-@app.route(API_STREAM_STOP_ROUTE, methods=['POST'])
+@app.route(API_STREAM_STOP_ROUTE, methods=["POST"])
 def stream_stop():
     """
     Stops streaming on all machines
     :return:
     """
-    status = broadcast(API_STREAM_STOP_ROUTE, 'POST', params=None,
-                       return_status=True, method_name='stream_stop')
+    status = broadcast(API_STREAM_STOP_ROUTE, "POST", params=None, return_status=True, method_name="stream_stop")
 
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET_ROUTE, methods=['POST'])
+@app.route(API_TS_OFFSET_ROUTE, methods=["POST"])
 def set_ts_offset():
     """
     Query parameters:
@@ -209,28 +234,34 @@ def set_ts_offset():
     e.g. {"lang": 4000, ...} (note, offset in milliseconds)
     :return:
     """
-    offset_settings = request.args.get('offset_settings', None)
+    offset_settings = request.args.get("offset_settings", None)
     offset_settings = json.loads(offset_settings)
 
     params = MultilangParams(offset_settings, langs=langs)
-    status = broadcast(API_TS_OFFSET_ROUTE, 'POST', params=params, param_name="offset_settings",
-                       return_status=True, method_name='set_ts_offset')
+    status = broadcast(
+        API_TS_OFFSET_ROUTE,
+        "POST",
+        params=params,
+        param_name="offset_settings",
+        return_status=True,
+        method_name="set_ts_offset",
+    )
 
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET_ROUTE, methods=['GET'])
+@app.route(API_TS_OFFSET_ROUTE, methods=["GET"])
 def get_ts_offset():
     """
     Retrieves information about teamspeak sound offset
     :return: {"lang": offset, ...} (note, offset in milliseconds)
     """
-    responses = broadcast(API_TS_OFFSET_ROUTE, 'GET', params=None, return_status=False)
+    responses = broadcast(API_TS_OFFSET_ROUTE, "GET", params=None, return_status=False)
     data = {}
     for lang, response in responses.items():
         try:
             data_ = json.loads(response.text)
-        except:
+        except json.JSONDecodeError:
             data_ = {lang: "#"}
         for lang_, value in data_.items():
             data[lang_] = value
@@ -238,7 +269,7 @@ def get_ts_offset():
     return json.dumps(data), 200
 
 
-@app.route(API_TS_VOLUME_ROUTE, methods=['POST'])
+@app.route(API_TS_VOLUME_ROUTE, methods=["POST"])
 def set_ts_volume():
     """
     Query parameters:
@@ -246,28 +277,34 @@ def set_ts_volume():
     e.g. {"lang": 0.0, ...}
     :return:
     """
-    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = request.args.get("volume_settings", None)
     volume_settings = json.loads(volume_settings)
 
     params = MultilangParams(volume_settings, langs=langs)
-    status = broadcast(API_TS_VOLUME_ROUTE, 'POST', params=params, param_name="volume_settings",
-                       return_status=True, method_name='set_ts_volume')
+    status = broadcast(
+        API_TS_VOLUME_ROUTE,
+        "POST",
+        params=params,
+        param_name="volume_settings",
+        return_status=True,
+        method_name="set_ts_volume",
+    )
 
     return status.to_http_status()
 
 
-@app.route(API_TS_VOLUME_ROUTE, methods=['GET'])
+@app.route(API_TS_VOLUME_ROUTE, methods=["GET"])
 def get_ts_volume():
     """
     Retrieves information about teamspeak sound volume
     :return: {"lang": offset, ...} (note, volume in decibels)
     """
-    responses = broadcast(API_TS_VOLUME_ROUTE, 'GET', params=None, return_status=False)
+    responses = broadcast(API_TS_VOLUME_ROUTE, "GET", params=None, return_status=False)
     data = {}
     for lang, response in responses.items():
         try:
             data_ = json.loads(response.text)
-        except:
+        except json.JSONDecodeError:
             data_ = {lang: "#"}
         for lang_, value in data_.items():
             data[lang_] = value
@@ -275,7 +312,7 @@ def get_ts_volume():
     return json.dumps(data), 200
 
 
-@app.route(API_SOURCE_VOLUME_ROUTE, methods=['POST'])
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=["POST"])
 def set_source_volume():
     """
     Query parameters:
@@ -283,28 +320,34 @@ def set_source_volume():
     e.g. {"lang": 0.0, ...}
     :return:
     """
-    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = request.args.get("volume_settings", None)
     volume_settings = json.loads(volume_settings)
 
     params = MultilangParams(volume_settings, langs=langs)
-    status = broadcast(API_TS_VOLUME_ROUTE, 'POST', params=params, param_name="volume_settings",
-                       return_status=True, method_name='set_source_volume')
+    status = broadcast(
+        API_TS_VOLUME_ROUTE,
+        "POST",
+        params=params,
+        param_name="volume_settings",
+        return_status=True,
+        method_name="set_source_volume",
+    )
 
     return status.to_http_status()
 
 
-@app.route(API_SOURCE_VOLUME_ROUTE, methods=['GET'])
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=["GET"])
 def get_source_volume():
     """
     Retrieves information about original source volume
     :return: {"lang": volume, ...} (note, volume in decibels)
     """
-    responses = broadcast(API_SOURCE_VOLUME_ROUTE, 'GET', params=None, return_status=False)
+    responses = broadcast(API_SOURCE_VOLUME_ROUTE, "GET", params=None, return_status=False)
     data = {}
     for lang, response in responses.items():
         try:
             data_ = json.loads(response.text)
-        except:
+        except json.JSONDecodeError:
             data_ = {lang: "#"}
         for lang_, value in data_.items():
             data[lang_] = value
@@ -312,7 +355,7 @@ def get_source_volume():
     return json.dumps(data), 200
 
 
-@app.route(API_SIDECHAIN_ROUTE, methods=['POST'])
+@app.route(API_SIDECHAIN_ROUTE, methods=["POST"])
 def setup_sidechain():
     """
     Query parameters:
@@ -320,17 +363,23 @@ def setup_sidechain():
     e.g. {"lang": {'ratio': ..., 'release_time': ..., 'threshold': ...}, ...}
     :return:
     """
-    sidechain_settings = request.args.get('sidechain_settings', None)
+    sidechain_settings = request.args.get("sidechain_settings", None)
     sidechain_settings = json.loads(sidechain_settings)
 
     params = MultilangParams(sidechain_settings, langs=langs)
-    status = broadcast(API_SIDECHAIN_ROUTE, 'POST', params=params, param_name="sidechain_settings",
-                       return_status=True, method_name='setup_sidechain')
+    status = broadcast(
+        API_SIDECHAIN_ROUTE,
+        "POST",
+        params=params,
+        param_name="sidechain_settings",
+        return_status=True,
+        method_name="setup_sidechain",
+    )
 
     return status.to_http_status()
 
 
-@app.route(API_TRANSITION_ROUTE, methods=['POST'])
+@app.route(API_TRANSITION_ROUTE, methods=["POST"])
 def setup_transition():
     """
     Query parameters:
@@ -338,61 +387,21 @@ def setup_transition():
     e.g. {"lang": {'transition_name': ..., 'audio_fade_style': ..., 'path': ..., ...}, ...}
     :return:
     """
-    transition_settings = request.args.get('transition_settings', None)
+    transition_settings = request.args.get("transition_settings", None)
     transition_settings = json.loads(transition_settings)
 
     params = MultilangParams(transition_settings, langs=langs)
-    status = broadcast(API_TRANSITION_ROUTE, 'POST', params=params, param_name="transition_settings",
-                       return_status=True, method_name='setup_transition')
+    status = broadcast(
+        API_TRANSITION_ROUTE,
+        "POST",
+        params=params,
+        param_name="transition_settings",
+        return_status=True,
+        method_name="setup_transition",
+    )
 
     return status.to_http_status()
 
 
-if __name__ == '__main__':
-    app.run('0.0.0.0', 5000)
-
-# ==================================== FOR TESTING
-# client = obsws.obsws("localhost", 4445)
-# # client.register(on_event)
-# client.connect()
-#
-# # client.call(obswebsocket.requests.GetVersion()).getObsWebsocketVersion()
-# client.call(obswebsocket.requests.GetSourcesList()).getSources()
-# client.call(obswebsocket.requests.GetSourceSettings('original_media')).getSourceSettings()
-# obswebsocket.requests.CreateSource(sourceName='name', sourceKind='', sceneName='', sourceSettings='')
-# client.call(obswebsocket.requests.GetSceneList()).getScenes()
-#
-# client.call(obswebsocket.requests.GetMute('original_stream')).getMuted()
-# client.call(obswebsocket.requests.GetAudioMonitorType('original_stream')).getMonitorType()  # none, monitorOnly, monitorAndOutput
-# client.call(obswebsocket.requests.SetAudioMonitorType(sourceName='original_stream', monitorType='none'))
-#
-# '''
-# {'input': 'rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333',
-#  'is_local_file': False}
-#  '''
-# items = client.call(obswebsocket.requests.GetSceneItemList(sceneName='main_1')).getSceneItems()
-# for item in items:
-#     print(item)
-#     client.call(obswebsocket.requests.DeleteSceneItem(item=item))
-#
-#
-# try:
-#     time.sleep(100)
-#
-# except KeyboardInterrupt:
-#     pass
-#
-# client.disconnect()
-# obswebsocket.requests.GetSourceSettings
-"""
-l = client.call(obsws.requests.GetTransitionSettings('Stinger'))
-l.getTransitionSettings()
-{'audio_fade_style': 1,
- 'audio_monitoring': 1,
- 'hw_decode': True,
- 'invert_matte': False,
- 'path': '/home/amukhsimov/common/_Sting_RT.mp4',
- 'tp_type': 0,
- 'track_matte_enabled': False,
- 'transition_point': 3000}
-"""
+if __name__ == "__main__":
+    app.run("0.0.0.0", 5000)

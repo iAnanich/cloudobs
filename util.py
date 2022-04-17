@@ -1,4 +1,5 @@
 import re
+
 # import aiohttp
 # import asyncio
 # from grequests import async
@@ -17,13 +18,12 @@ import re
 #                     responses_[lang] = response_
 
 
-
 def validate_init_params(server_langs):
     for lang, lang_info in server_langs.items():
-        for attr in ['host_url', 'websocket_port', 'password', 'original_media_url']:
+        for attr in ["host_url", "websocket_port", "password", "original_media_url"]:
             if attr not in lang_info:
                 return ExecutionStatus(status=False, message=f"Please specify `{attr}` attribute for lang '{lang}'")
-        websockets_port = lang_info['websocket_port']
+        websockets_port = lang_info["websocket_port"]
         # TODO: validate `obs_host`
         if not str(websockets_port).isdigit():
             return ExecutionStatus(status=False, message="`websocket_port` must be a number")
@@ -32,7 +32,7 @@ def validate_init_params(server_langs):
 
 
 def validate_media_play_params(name, use_file_num):
-    if use_file_num not in ('0', '1'):
+    if use_file_num not in ("0", "1"):
         return ExecutionStatus(status=False, message="`search_by_num` should be in range of '0' or '1'")
 
     if not name:
@@ -62,18 +62,18 @@ class ServiceAddrStorage:
         return self.dct.items()
 
     def addr(self, lang):
-        return self.dct[lang]['addr']
+        return self.dct[lang]["addr"]
 
 
 class MultilangParams:
     def __init__(self, params_dict, langs=None):
         self.params_dict = params_dict
         self.langs = langs
-        self.all_langs = (len(params_dict) == 1) and ('__all__' in params_dict)
+        self.all_langs = (len(params_dict) == 1) and ("__all__" in params_dict)
 
     def __getitem__(self, item):
         if self.all_langs:
-            return self.params_dict['__all__']
+            return self.params_dict["__all__"]
         return self.params_dict[item]
 
     def __setitem__(self, key, value):
@@ -94,18 +94,18 @@ class MultilangParams:
 
 
 class ExecutionStatus:
-    def __init__(self, status, message=''):
+    def __init__(self, status, message=""):
         self.status = status
         self.message = message
 
-        if re.match(r'\d{3}$', str(status)):
-            self._type = 'http'
+        if re.match(r"\d{3}$", str(status)):
+            self._type = "http"
         else:
-            self._type = ''
+            self._type = ""
 
     def __bool__(self):
-        if self._type == 'http':
-            return bool(self.status) and str(self.status)[:1] == '2'
+        if self._type == "http":
+            return bool(self.status) and str(self.status)[:1] == "2"
         else:
             return bool(self.status)
 
@@ -127,9 +127,5 @@ class ExecutionStatus:
         `(message, code)`
         """
         code = 200 if self.__bool__() else 500
-        msg = 'Ok' if code == 200 and not self.message else self.message
+        msg = "Ok" if code == 200 and not self.message else self.message
         return msg, code
-
-{"eng": {"host_url": "http://localhost:6000", "websocket_port": 4439, "password": "","original_media_url": "rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333"},
- "rus": {"host_url": "http://135.181.206.93:6000","websocket_port": 4439,"password": "","original_media_url": "rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333"},
- "rus": {"host_url": "http://135.181.252.126:6000","websocket_port": 4439, "password": "","original_media_url": "rtmp://nsk-2.facecast.io/re/861424dbf89b93e52333"}}

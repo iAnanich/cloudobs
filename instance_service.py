@@ -1,26 +1,23 @@
-import time
 import json
-import os
-import obswebsocket as obsws
-import obswebsocket.requests as obsrequests
-import server
+import time
+
+from dotenv import load_dotenv
 from flask import Flask
 from flask import request
-from dotenv import load_dotenv
-import util
-from util import ExecutionStatus
 
+import server
+from config import API_CLEANUP_ROUTE
 from config import API_INIT_ROUTE
 from config import API_MEDIA_PLAY_ROUTE
 from config import API_SET_STREAM_SETTINGS_ROUTE
-from config import API_STREAM_START_ROUTE
-from config import API_STREAM_STOP_ROUTE
-from config import API_CLEANUP_ROUTE
-from config import API_TS_OFFSET_ROUTE
-from config import API_TS_VOLUME_ROUTE
 from config import API_SIDECHAIN_ROUTE
 from config import API_SOURCE_VOLUME_ROUTE
+from config import API_STREAM_START_ROUTE
+from config import API_STREAM_STOP_ROUTE
 from config import API_TRANSITION_ROUTE
+from config import API_TS_OFFSET_ROUTE
+from config import API_TS_VOLUME_ROUTE
+from util import ExecutionStatus
 
 load_dotenv()
 
@@ -30,14 +27,19 @@ app = Flask(__name__)
 obs_server: server.Server = None
 
 
-@app.route(API_INIT_ROUTE, methods=['POST'])
+@app.route(API_INIT_ROUTE, methods=["POST"])
 def init():
     """
     Query parameters:
-    server_langs: json, dict {"obs_host": "localhost", "websocket_port": 1234, "password": "qwerty123", "original_media_url": "srt://localhost"}
+    server_langs: json, dict {
+        "obs_host": "localhost",
+        "websocket_port": 1234,
+        "password": "qwerty123",
+        "original_media_url": "srt://localhost"
+    }
     :return:
     """
-    server_langs = request.args.get('server_langs', '')
+    server_langs = request.args.get("server_langs", "")
     server_langs = json.loads(server_langs)
 
     # status: ExecutionStatus = util.validate_init_params(server_langs)
@@ -50,7 +52,7 @@ def init():
         try:
             obs_server.cleanup()
             time.sleep(1)  # wait for cleanup
-        except:
+        except Exception:  # FIXME
             pass
         del obs_server
         obs_server = None
@@ -61,7 +63,7 @@ def init():
     return status.to_http_status()
 
 
-@app.route(API_CLEANUP_ROUTE, methods=['POST'])
+@app.route(API_CLEANUP_ROUTE, methods=["POST"])
 def cleanup():
     """
     :return:
@@ -79,7 +81,7 @@ def cleanup():
     return ExecutionStatus(status=True).to_http_status()
 
 
-@app.route(API_MEDIA_PLAY_ROUTE, methods=['POST'])
+@app.route(API_MEDIA_PLAY_ROUTE, methods=["POST"])
 def media_play():
     """
     Query parameters:
@@ -90,7 +92,7 @@ def media_play():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    params = request.args.get('params', None)
+    params = request.args.get("params", None)
     params = json.loads(params)
 
     status: ExecutionStatus = obs_server.run_media(params=params)
@@ -98,7 +100,7 @@ def media_play():
     return status.to_http_status()
 
 
-@app.route(API_SET_STREAM_SETTINGS_ROUTE, methods=['POST'])
+@app.route(API_SET_STREAM_SETTINGS_ROUTE, methods=["POST"])
 def set_stream_settings():
     """
     Query parameters:
@@ -109,7 +111,7 @@ def set_stream_settings():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    stream_settings = request.args.get('stream_settings', None)
+    stream_settings = request.args.get("stream_settings", None)
     stream_settings = json.loads(stream_settings)
 
     status: ExecutionStatus = obs_server.set_stream_settings(stream_settings=stream_settings)
@@ -117,7 +119,7 @@ def set_stream_settings():
     return status.to_http_status()
 
 
-@app.route(API_STREAM_START_ROUTE, methods=['POST'])
+@app.route(API_STREAM_START_ROUTE, methods=["POST"])
 def stream_start():
     """
     Starts streaming on all machines
@@ -131,7 +133,7 @@ def stream_start():
     return status.to_http_status()
 
 
-@app.route(API_STREAM_STOP_ROUTE, methods=['POST'])
+@app.route(API_STREAM_STOP_ROUTE, methods=["POST"])
 def stream_stop():
     """
     Stops streaming on all machines
@@ -145,7 +147,7 @@ def stream_stop():
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET_ROUTE, methods=['POST'])
+@app.route(API_TS_OFFSET_ROUTE, methods=["POST"])
 def set_ts_offset():
     """
     Query parameters:
@@ -156,7 +158,7 @@ def set_ts_offset():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    offset_settings = request.args.get('offset_settings', None)
+    offset_settings = request.args.get("offset_settings", None)
     offset_settings = json.loads(offset_settings)
 
     status: ExecutionStatus = obs_server.set_ts_sync_offset(offset_settings=offset_settings)
@@ -164,7 +166,7 @@ def set_ts_offset():
     return status.to_http_status()
 
 
-@app.route(API_TS_OFFSET_ROUTE, methods=['GET'])
+@app.route(API_TS_OFFSET_ROUTE, methods=["GET"])
 def get_ts_offset():
     """
     Retrieves information about teamspeak sound offset
@@ -179,7 +181,7 @@ def get_ts_offset():
     return data, 200
 
 
-@app.route(API_TS_VOLUME_ROUTE, methods=['POST'])
+@app.route(API_TS_VOLUME_ROUTE, methods=["POST"])
 def set_ts_volume():
     """
     Query parameters:
@@ -190,7 +192,7 @@ def set_ts_volume():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = request.args.get("volume_settings", None)
     volume_settings = json.loads(volume_settings)
     # TODO: validate `volume_settings`
 
@@ -199,7 +201,7 @@ def set_ts_volume():
     return status.to_http_status()
 
 
-@app.route(API_TS_VOLUME_ROUTE, methods=['GET'])
+@app.route(API_TS_VOLUME_ROUTE, methods=["GET"])
 def get_ts_volume():
     """
     Retrieves information about teamspeak sound volume
@@ -214,7 +216,7 @@ def get_ts_volume():
     return data, 200
 
 
-@app.route(API_SOURCE_VOLUME_ROUTE, methods=['POST'])
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=["POST"])
 def set_source_volume():
     """
     Query parameters:
@@ -225,7 +227,7 @@ def set_source_volume():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    volume_settings = request.args.get('volume_settings', None)
+    volume_settings = request.args.get("volume_settings", None)
     volume_settings = json.loads(volume_settings)
     # TODO: validate `volume_settings`
 
@@ -234,7 +236,7 @@ def set_source_volume():
     return status.to_http_status()
 
 
-@app.route(API_SOURCE_VOLUME_ROUTE, methods=['GET'])
+@app.route(API_SOURCE_VOLUME_ROUTE, methods=["GET"])
 def get_source_volume():
     """
     Retrieves information about original source sound volume
@@ -249,7 +251,7 @@ def get_source_volume():
     return data, 200
 
 
-@app.route(API_SIDECHAIN_ROUTE, methods=['POST'])
+@app.route(API_SIDECHAIN_ROUTE, methods=["POST"])
 def setup_sidechain():
     """
     Query parameters:
@@ -260,7 +262,7 @@ def setup_sidechain():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    sidechain_settings = request.args.get('sidechain_settings', None)
+    sidechain_settings = request.args.get("sidechain_settings", None)
     sidechain_settings = json.loads(sidechain_settings)
     # TODO: validate `sidechain_settings`
 
@@ -269,7 +271,7 @@ def setup_sidechain():
     return status.to_http_status()
 
 
-@app.route(API_TRANSITION_ROUTE, methods=['POST'])
+@app.route(API_TRANSITION_ROUTE, methods=["POST"])
 def setup_transition():
     """
     Query parameters:
@@ -280,7 +282,7 @@ def setup_transition():
     if obs_server is None:
         return ExecutionStatus(status=False, message="The server was not initialized yet").to_http_status()
 
-    transition_settings = request.args.get('transition_settings', None)
+    transition_settings = request.args.get("transition_settings", None)
     transition_settings = json.loads(transition_settings)
     # TODO: validate `transition_settings`
 
@@ -289,5 +291,5 @@ def setup_transition():
     return status.to_http_status()
 
 
-if __name__ == '__main__':
-    app.run('0.0.0.0', 6000)
+if __name__ == "__main__":
+    app.run("0.0.0.0", 6000)
