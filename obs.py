@@ -156,7 +156,6 @@ class OBS:
         Removes all the items from a specified scene
         """
         items = self.obsws_get_scene_item_list(scene_name=scene_name)
-        items = [{"id": item["itemId"], "name": item["sourceName"]} for item in items]
         for item in items:
             self.delete_scene_item(item_id=item["itemId"], source_name=item["sourceName"], scene_name=scene_name)
 
