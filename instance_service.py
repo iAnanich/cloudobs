@@ -1,4 +1,5 @@
 import json
+import os
 import time
 
 from dotenv import load_dotenv
@@ -20,8 +21,22 @@ from config import API_TS_VOLUME_ROUTE
 from util import ExecutionStatus
 
 load_dotenv()
-
 # MEDIA_DIR = os.getenv('MEDIA_DIR')
+
+
+# Setup Sentry
+# ------------
+# if env var set - setup integration
+SENTRY_DSN = os.getenv('SENTRY_DSN')
+if SENTRY_DSN:
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=1.0,
+    )
 
 app = Flask(__name__)
 obs_server: server.Server = None
