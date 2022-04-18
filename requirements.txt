@@ -66,7 +66,7 @@ click==8.1.2; python_version >= "3.7" and python_full_version < "3.0.0" or pytho
 colorama==0.4.4; python_version >= "3.7" and python_full_version < "3.0.0" and platform_system == "Windows" or python_full_version >= "3.5.0" and python_version >= "3.7" and platform_system == "Windows" \
     --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2 \
     --hash=sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b
-flask==2.1.0
+flask==2.1.0 --hash=sha256:e4c69910f6a096cc57e4ee45b7ba9afafdcad4cc571db6eb97d5bd01b95422ea
 gevent==21.12.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_version > "3.5" \
     --hash=sha256:2afa3f3ad528155433f6ac8bd64fa5cc303855b97004416ec719a6b1ca179481 \
     --hash=sha256:177f93a3a90f46a5009e0841fef561601e5c637ba4332ab8572edd96af650101 \
