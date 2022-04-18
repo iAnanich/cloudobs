@@ -2,7 +2,6 @@ import json
 import os
 from urllib.parse import urlencode
 
-import grequests
 from dotenv import load_dotenv
 from flask import Flask
 from flask import request
@@ -143,9 +142,13 @@ def init():
 
         addr = instance_service_addrs.addr(lang)
         request_ = f"{addr}{API_INIT_ROUTE}?{query_params}"
-        requests_.append(grequests.post(request_))
 
-    for lang, response in zip(langs, grequests.map(requests_, gtimeout=5)):
+        requests_.append(request_)
+
+    # initialize grequests
+    responses_ = util.async_aiohttp_post_all(urls=requests_)
+
+    for lang, response in zip(langs, responses_):
         if response.status_code != 200:
             msg_ = f"E PYSERVER::init(): couldn't initialize server for {lang}, details: {response.text}"
             print(msg_)
