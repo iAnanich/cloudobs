@@ -66,7 +66,6 @@ click==8.1.2; python_version >= "3.7" and python_full_version < "3.0.0" or pytho
 colorama==0.4.4; python_version >= "3.7" and python_full_version < "3.0.0" and platform_system == "Windows" or python_full_version >= "3.5.0" and python_version >= "3.7" and platform_system == "Windows" \
     --hash=sha256:9f47eda37229f68eee03b24b9748937c7dc3868f906e8ba69fbcbdd3bc5dc3e2 \
     --hash=sha256:5941b2b48a20143d2267e95b1c2a7603ce057ee39fd88e7329b0c292aa16869b
-flask==2.1.0 --hash=sha256:e4c69910f6a096cc57e4ee45b7ba9afafdcad4cc571db6eb97d5bd01b95422ea
 gevent==21.12.0; python_version >= "2.7" and python_full_version < "3.0.0" or python_version > "3.5" \
     --hash=sha256:2afa3f3ad528155433f6ac8bd64fa5cc303855b97004416ec719a6b1ca179481 \
     --hash=sha256:177f93a3a90f46a5009e0841fef561601e5c637ba4332ab8572edd96af650101 \
@@ -290,9 +289,6 @@ pycparser==2.21; python_version >= "2.7" and python_full_version < "3.0.0" and p
 pyparsing==3.0.8; python_full_version >= "3.6.8" and python_version >= "3.6" \
     --hash=sha256:ef7b523f6356f763771559412c0d7134753f037822dad1b16945b7b846f7ad06 \
     --hash=sha256:7bf433498c016c4314268d95df76c81b842a4cb2b276fa3312cfb1e1d85f6954
-python-dotenv==0.19.2; python_version >= "3.5" \
-    --hash=sha256:a5de49a31e953b45ff2d2fd434bbc2670e8db5273606c1e737cc6b93eff3655f \
-    --hash=sha256:32b2bdc1873fd3a3c346da1c6db83d0053c3c62f28f1f38516070c4c8971b1d3
 requests-oauthlib==1.3.1; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6" \
     --hash=sha256:75beac4a47881eeb94d5ea5d6ad31ef88856affe2332b9aafb52c6452ccf0d7a \
     --hash=sha256:2577c501a2fb8d05a304c09d090d6e47c306fef15809d102b327cf8364bddab5
@@ -372,3 +368,7 @@ zope.interface==5.4.0; python_version >= "2.7" and python_full_version < "3.0.0"
     --hash=sha256:d4d9d6c1a455d4babd320203b918ccc7fcbefe308615c521062bc2ba1aa4d26e \
     --hash=sha256:0cba8477e300d64a11a9789ed40ee8932b59f9ee05f85276dbb4b59acee5dd09 \
     --hash=sha256:5dba5f530fec3f0988d83b78cc591b58c0b6eb8431a85edd1569a0539a8a5a0e
+git+https://github.com/Elektordi/obs-websocket-py
+asgiref~=3.4.1
+python-dotenv~=0.19.2
+flask~=1.1.2
