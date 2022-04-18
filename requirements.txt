@@ -177,9 +177,6 @@ greenlet==1.1.2; python_version >= "2.7" and python_full_version < "3.0.0" and p
     --hash=sha256:f70a9e237bb792c7cc7e44c531fd48f5897961701cdaa06cf22fc14965c496cf \
     --hash=sha256:013d61294b6cd8fe3242932c1c5e36e5d1db2c8afb58606c5a67efce62c1f5fd \
     --hash=sha256:e30f5ea4ae2346e62cedde8794a56858a67b878dd79f7df76a0767e356b1744a
-grequests==0.6.0 \
-    --hash=sha256:6eff964416021bb1dee4182a56cc2b551bfa42d37820e6aee6f2efa00d43a061 \
-    --hash=sha256:7dec890c6668e6755a1ea968565535867956639301268394d24df67b478df666
 httplib2==0.20.4; python_version >= "3.6" and python_full_version < "3.0.0" or python_full_version >= "3.4.0" and python_version >= "3.6" \
     --hash=sha256:8b6a905cb1c79eefd03f8669fd993c36dc341f7c558f056cb5a33b5c2f458543 \
     --hash=sha256:58a98e45b4b1a48273073f905d2961666ecf0fbac4250ea5b47aef259eb5c585
@@ -379,6 +376,5 @@ zope.interface==5.4.0; python_version >= "2.7" and python_full_version < "3.0.0"
     --hash=sha256:5dba5f530fec3f0988d83b78cc591b58c0b6eb8431a85edd1569a0539a8a5a0e
 
 asgiref~=3.4.1
-python-dotenv~=0.19.2
 grequests~=0.6.0
 flask~=1.1.2
