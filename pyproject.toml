@@ -11,7 +11,7 @@ authors = [
 [tool.poetry.dependencies]
 python = "^3.8"
 # main dependencies
-Flask = "~=1.1.2"
+Flask = "2.1.0"
 grequests = "^0.6.0"
 # Google API
 google-api-python-client = "^2.44.0"
