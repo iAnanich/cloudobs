@@ -55,7 +55,7 @@ class Server:
     def cleanup(self):
         self.stop_streaming()  # no need to check status
         self._reset_scenes()
-        self.drop_connections()
+        # self.drop_connections()
 
     def drop_connections(self):
         for lang, client in self.obs_clients.items():

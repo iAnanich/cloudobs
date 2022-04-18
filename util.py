@@ -1,21 +1,43 @@
 import re
 
-# import aiohttp
-# import asyncio
-# from grequests import async
-#
-# async def request(requests_, method):
-#     responses_ = {}
-#     async with aiohttp.ClientSession() as session:
-#         for lang, request_ in requests_.items():
-#             if method == 'GET':
-#                 async with session.get(request_) as resp:
-#                     response_ = await resp.read()
-#                     responses_[lang] = response_
-#             elif method == 'POST':
-#                 async with session.post(request_) as resp:
-#                     response_ = await resp.read()
-#                     responses_[lang] = response_
+import aiohttp
+import asyncio
+from asgiref import sync
+
+class Response:
+    def __init__(self, text, status_code):
+        self.text = text
+        self.status_code = status_code
+
+def async_aiohttp_get_all(urls):
+    """
+    performs asynchronous get requests
+    """
+    async def get_all(urls):
+        async with aiohttp.ClientSession() as session:
+            async def fetch(url):
+                async with session.get(url) as response:
+                    return Response(await response.text(), response.status)
+            return await asyncio.gather(*[
+                fetch(url) for url in urls
+            ])
+    # call get_all as a sync function to be used in a sync context
+    return sync.async_to_sync(get_all)(urls)
+
+def async_aiohttp_post_all(urls):
+    """
+    performs asynchronous get requests
+    """
+    async def get_all(urls):
+        async with aiohttp.ClientSession() as session:
+            async def fetch(url):
+                async with session.post(url) as response:
+                    return Response(await response.text(), response.status)
+            return await asyncio.gather(*[
+                fetch(url) for url in urls
+            ])
+    # call get_all as a sync function to be used in a sync context
+    return sync.async_to_sync(get_all)(urls)
 
 
 def validate_init_params(server_langs):

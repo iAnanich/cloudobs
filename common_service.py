@@ -68,16 +68,12 @@ def broadcast(
         requests_[lang] = request_  # dump request
 
     # initialize grequests
-    for lang, request_ in requests_.items():
-        if http_method == "GET":
-            requests_[lang] = grequests.get(request_)
-        elif http_method == "POST":
-            requests_[lang] = grequests.post(request_)
-        else:
-            raise
-    # send requests
-    for lang, response_ in zip(requests_.keys(), grequests.map(requests_.values())):
-        responses_[lang] = response_
+    urls = list(requests_.values())
+    if http_method == "GET":
+        responses_ = util.async_aiohttp_get_all(urls=urls)
+    elif http_method == "POST":
+        responses_ = util.async_aiohttp_post_all(urls=urls)
+    responses_ = {lang: responses_[i] for i, lang in enumerate(requests_.keys())}
 
     # decide wether to return status of response
     if return_status:
@@ -128,7 +124,7 @@ def init():
     # broadcast request for all servers
     global instance_service_addrs  # dict of `"lang": {"addr": "address", "init": True/False}
     global langs
-    langs = list(set(server_langs.keys()))
+    langs = list(server_langs.keys())
     requests_ = []
 
     for lang in langs:
