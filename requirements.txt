@@ -374,3 +374,5 @@ zope.interface==5.4.0; python_version >= "2.7" and python_full_version < "3.0.0"
     --hash=sha256:d4d9d6c1a455d4babd320203b918ccc7fcbefe308615c521062bc2ba1aa4d26e \
     --hash=sha256:0cba8477e300d64a11a9789ed40ee8932b59f9ee05f85276dbb4b59acee5dd09 \
     --hash=sha256:5dba5f530fec3f0988d83b78cc591b58c0b6eb8431a85edd1569a0539a8a5a0e
+
+python-dotenv
