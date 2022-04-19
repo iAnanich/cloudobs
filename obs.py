@@ -96,6 +96,7 @@ class OBS:
         :param original_media_source: url like 'protocol://address[:port][/path][...]', may be rtmp, srt
         """
         self.original_media_source = original_media_source
+        self.delete_source(ORIGINAL_STREAM_SOURCE_NAME)
 
         source_settings = {
             "input": original_media_source,
@@ -485,13 +486,14 @@ class OBS:
         """
         Removes all inputs with name `source_name`
         """
-        if not scene_name:
-            scene_name = self.obsws_get_current_scene_name()
-        items = self.obsws_get_scene_item_list(scene_name=scene_name)
-        for item in items:
-            item_id, source_name_ = item["itemId"], item["sourceName"]
-            if source_name_ == source_name:
-                self.delete_scene_item(item_id=item_id, source_name=source_name, scene_name=scene_name)
+        scene_names = [scene_name] if scene_name is not None else self.obsws_get_scene_list()
+
+        for scene_name in scene_names:
+            items = self.obsws_get_scene_item_list(scene_name=scene_name)
+            for item in items:
+                item_id, source_name_ = item["itemId"], item["sourceName"]
+                if source_name_ == source_name:
+                    self.delete_scene_item(item_id=item_id, source_name=source_name, scene_name=scene_name)
 
     def delete_scene_item(self, item_id, source_name, scene_name):
         """
