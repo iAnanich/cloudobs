@@ -221,19 +221,8 @@ class OBS:
         Adds/Resets teamspeak audio input (default device).
         """
 
+        self.delete_source(TS_INPUT_NAME)
         current_scene = self.obsws_get_current_scene_name()
-        items = [
-            {"id": item["itemId"], "name": item["sourceName"]}
-            for item in self.obsws_get_scene_item_list(scene_name=current_scene)
-            if item["sourceName"] == TS_INPUT_NAME
-        ]
-
-        for item in items:
-            response = self.client.call(obs.requests.DeleteSceneItem(scene=current_scene, item=item))
-            if not response.status:  # if not deleted
-                raise Exception(
-                    f"E PYSERVER::OBS::setup_ts_sound(): " f"datain: {response.datain}, dataout: {response.dataout}"
-                )
 
         response = self.client.call(
             obs.requests.CreateSource(
