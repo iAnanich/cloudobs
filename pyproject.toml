@@ -13,7 +13,7 @@ python = "^3.8"
 # main dependencies
 Flask = "~=1.1.2"
 obs-websocket-py = { git="https://github.com/amukhsimov/obs-websocket-py.git" }
-grequests = "^0.6.0"
+aiohttp = "^3.8.1"
 # Google API
 google-api-python-client = "^2.44.0"
 google-auth-httplib2 = "^0.1.0"
