@@ -470,7 +470,7 @@ class OBS:
             obs.requests.CreateSource(
                 sourceName=source_name,
                 sourceKind="ffmpeg_source",
-                sceneName=MEDIA_SCENE_NAME,
+                sceneName=scene_name,
                 sourceSettings={"local_file": path},
             )
         )
