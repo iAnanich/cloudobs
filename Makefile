@@ -8,7 +8,7 @@ pip-install:
 
 requirements.txt:
 	# exporting from poetry regulates inclusion of "dev" packages
-	poetry export -f requirements.txt > requirements.txt
+	poetry export --without-hashes -f requirements.txt > requirements.txt
 
 pip-requirements:
 	rm -f requirements.txt
