@@ -306,5 +306,10 @@ def setup_transition():
     return status.to_http_status()
 
 
+@app.route('/healthcheck', methods=['GET'])
+def healthcheck():
+    return '', 200
+
+
 if __name__ == "__main__":
     app.run("0.0.0.0", 6000)
