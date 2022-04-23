@@ -39,7 +39,6 @@ if SENTRY_DSN:
     )
 
 app = Flask(__name__)
-obs_server: server.Server = None
 instance_service_addrs = util.ServiceAddrStorage()  # dict of `"lang": {"addr": "address"}
 langs = []
 

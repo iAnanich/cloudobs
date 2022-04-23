@@ -193,8 +193,8 @@ class OBS:
         def media_play_foo():
             # delay at self.transition_point / 1000
             try:
-                self.delete_source(source_name=TRANSITION_INPUT_NAME)
                 self._run_media(path, MEDIA_INPUT_NAME)
+                self.delete_source(source_name=TRANSITION_INPUT_NAME)
                 self.set_ts_mute(True)
                 duration = self.client.call(
                     obs.requests.GetMediaDuration(sourceName=MEDIA_INPUT_NAME)
