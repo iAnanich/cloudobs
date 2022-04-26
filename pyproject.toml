@@ -21,6 +21,10 @@ google-auth-oauthlib = "^0.5.1"
 # Utils
 python-dotenv = "~=0.19.2"
 sentry-sdk = {extras = ["flask"], version = "^1.5.10"}
+Jinja2 = "3.0.0"
+itsdangerous = "2.0.1"
+Werkzeug = "2.0.0"
+asgiref = "~=3.4.1"
 
 
 [tool.poetry.dev-dependencies]

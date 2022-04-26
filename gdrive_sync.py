@@ -25,8 +25,6 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
     """
     while True:
         try:
-            time.sleep(int(sync_period_seconds))
-            # every time rebuild service, since I am not sure of there is no timeout
             with build("drive", "v3", developerKey=api_key) as service:
                 # list the drive files, the response is like the following structure:
                 """
@@ -42,6 +40,7 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
                 if "files" not in files:
                     raise Exception(f"Couldn't list files in specified driveId. Error: {files}")
 
+                print(f"I PYSERVER::run_drive_sync(): Sync {len(files['files'])} files")
                 for fileinfo in files["files"]:
                     fid, fname = fileinfo["id"], fileinfo["name"]
                     # if such file is not found locally, download it
@@ -58,6 +57,7 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
                             print(f"I PYSERVER::run_drive_sync(): Downloaded {fname} => {flocal}, status: {status}")
         except Exception as ex:
             print(f"E PYSERVER::run_drive_sync(): {ex}")
+        time.sleep(int(sync_period_seconds))
 
 
 if __name__ == "__main__":
