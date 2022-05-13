@@ -15,6 +15,15 @@ MEDIA_DIR = os.getenv("MEDIA_DIR")
 API_KEY = os.getenv("GDRIVE_API_KEY")
 SYNC_SECONDS = os.getenv("GDRIVE_SYNC_SECONDS")
 
+def reload_env():
+    global DRIVE_ID, MEDIA_DIR, API_KEY, SYNC_SECONDS
+
+    load_dotenv(override=True)
+    DRIVE_ID = os.getenv("GDRIVE_DRIVE_ID")
+    MEDIA_DIR = os.getenv("MEDIA_DIR")
+    API_KEY = os.getenv("GDRIVE_API_KEY")
+    SYNC_SECONDS = os.getenv("GDRIVE_SYNC_SECONDS")
+
 
 def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
     """
@@ -25,6 +34,7 @@ def run_drive_sync(drive_id, sync_period_seconds, local_dir, api_key):
     """
     while True:
         try:
+            reload_env()
             with build("drive", "v3", developerKey=api_key) as service:
                 # list the drive files, the response is like the following structure:
                 """
